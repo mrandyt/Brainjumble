@@ -44,6 +44,10 @@ button.tile:hover{transform:rotate(0deg) translateY(-2px)}
 button.tile:active{transform:scale(.95)}
 .tile.suffix{font-style:italic}
 .tile.ghost{visibility:hidden}
+.board [data-bi]{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
+.tile.dragging{opacity:.25}
+.drag-ghost{position:fixed;left:0;top:0;z-index:30;pointer-events:none;margin:0;--r:-3deg;transform:rotate(-3deg) scale(1.1);box-shadow:0 8px 18px rgba(0,0,0,.3)}
+.board.drop-out{border-color:var(--warn);border-style:solid}
 .tile.big{font-size:30px;padding:10px 13px 8px}
 
 /* Home */
@@ -154,7 +158,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
     <h3>How to play</h3>
     <ol class="how">
       <li>Everyone gets the same prompt and the same pile of word magnets.</li>
-      <li>Tap magnets to build your answer. Suffix magnets like <b>-ing</b> stick to the word before them. Tap a gap to move your cursor, tap a placed word to take it back.</li>
+      <li>Tap magnets to build your answer. Suffix magnets like <b>-ing</b> stick to the word before them. Drag a placed word to move it, and double-tap it (or drag it off the board) to take it back. Tap a gap to choose where the next word goes.</li>
       <li>Answers are shown anonymously. Vote for your favourite, but not your own.</li>
       <li>10 points per vote, 20 bonus for the round's top answer, 5 for voting for it.</li>
     </ol>
@@ -440,9 +444,9 @@ function viewBuild(g) {
     let h = "";
     for (let i = 0; i <= ws.length; i++) {
       h += `<button class="caret${S.draft.caret === i ? " on" : ""}" data-act="caret" data-i="${i}" aria-label="Put cursor here"></button>`;
-      if (i < ws.length) h += tileHtml(g.tiles[ws[i]], ws[i], `data-act="unplace" data-i="${i}" aria-label="Remove ${esc(g.tiles[ws[i]])}"`);
+      if (i < ws.length) h += tileHtml(g.tiles[ws[i]], ws[i], `data-bi="${i}" aria-label="${esc(g.tiles[ws[i]])}. Drag to move, double-tap to remove."`);
     }
-    if (!ws.length) h = `<span class="placeholder">Tap words below to build your answer</span>` + h;
+    if (!ws.length) h = `<span class="placeholder">Tap words below to add them. Drag to move, double-tap to remove.</span>` + h;
     board = `<div class="board" id="board">${h}</div>`;
     const text = compose(ws.map(i => g.tiles[i]));
     actions = `<div class="reads">${text ? `Reads as: <q>${esc(text)}</q>` : ""}</div>
@@ -496,6 +500,7 @@ function viewFinal(g) {
 const PHASE_LABEL = { lobby: "Lobby", build: "Build", vote: "Vote", reveal: "Results", final: "Final" };
 function render() {
   if (!S.room) return;
+  if (S.drag) return; // rebuilt when the drag ends
   const g = currentG();
   if (g) S.lastG = g;
   if (g && g.phase === "build") {
@@ -598,6 +603,75 @@ document.addEventListener("click", e => {
   if (!b || b.disabled) return;
   const f = actions[b.dataset.act];
   if (f) f(b);
+});
+
+// ---------- board: drag to move, double-tap to remove ----------
+const DBL_MS = 350;
+let lastTap = { i: -1, t: 0 };
+function removeAt(i) { S.draft.words.splice(i, 1); if (S.draft.caret > i) S.draft.caret--; render(); }
+function moveTo(from, k) {
+  const ws = S.draft.words; const [item] = ws.splice(from, 1);
+  k = Math.max(0, Math.min(ws.length, k)); ws.splice(k, 0, item); S.draft.caret = k + 1; render();
+}
+document.addEventListener("pointerdown", e => {
+  const el = e.target.closest(".board [data-bi]");
+  if (!el || e.button > 0 || S.drag) return;
+  const g = currentG(); if (!g || g.phase !== "build") return;
+  e.preventDefault();
+  const r = el.getBoundingClientRect();
+  S.drag = { from: +el.dataset.bi, el, x0: e.clientX, y0: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, moving: false, ghost: null, k: +el.dataset.bi, out: false, pid: e.pointerId };
+  try { el.setPointerCapture(e.pointerId); } catch {}
+});
+document.addEventListener("pointermove", e => {
+  const d = S.drag; if (!d || e.pointerId !== d.pid) return;
+  if (!d.moving) {
+    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 6) return;
+    d.moving = true;
+    d.ghost = d.el.cloneNode(true); d.ghost.removeAttribute("data-bi"); d.ghost.classList.add("drag-ghost");
+    document.body.appendChild(d.ghost); d.el.classList.add("dragging");
+  }
+  e.preventDefault();
+  d.ghost.style.transform = `translate(${e.clientX - d.dx}px, ${e.clientY - d.dy}px) rotate(-3deg) scale(1.1)`;
+  const board = $("#board"); if (!board) return;
+  const br = board.getBoundingClientRect();
+  d.out = e.clientY > br.bottom + 30 || e.clientY < br.top - 50;
+  board.classList.toggle("drop-out", d.out);
+  const tiles = [...board.querySelectorAll("[data-bi]")].filter(t => t !== d.el);
+  let k = tiles.length;
+  for (let j = 0; j < tiles.length; j++) {
+    const tr = tiles[j].getBoundingClientRect();
+    if (e.clientY < tr.top) { k = j; break; }
+    if (e.clientY <= tr.bottom && e.clientX < tr.left + tr.width / 2) { k = j; break; }
+  }
+  d.k = k;
+  const slot = k <= d.from ? k : k + 1;
+  board.querySelectorAll(".caret").forEach(c => c.classList.toggle("on", !d.out && +c.dataset.i === slot));
+});
+function endDrag(e, cancelled) {
+  const d = S.drag; if (!d || e.pointerId !== d.pid) return;
+  S.drag = null;
+  if (d.ghost) d.ghost.remove();
+  if (!d.moving) {
+    if (cancelled) { render(); return; }
+    const t = Date.now();
+    if (lastTap.i === d.from && t - lastTap.t < DBL_MS) { lastTap = { i: -1, t: 0 }; removeAt(d.from); }
+    else { lastTap = { i: d.from, t }; S.draft.caret = d.from + 1; render(); }
+    return;
+  }
+  lastTap = { i: -1, t: 0 };
+  if (cancelled) render();
+  else if (d.out) removeAt(d.from);
+  else moveTo(d.from, d.k);
+}
+document.addEventListener("pointerup", e => endDrag(e, false));
+document.addEventListener("pointercancel", e => endDrag(e, true));
+document.addEventListener("keydown", e => {
+  const el = e.target.closest && e.target.closest(".board [data-bi]"); if (!el) return;
+  const i = +el.dataset.bi;
+  const refocus = j => requestAnimationFrame(() => { const n = document.querySelector(`.board [data-bi="${j}"]`); if (n) n.focus(); });
+  if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); removeAt(i); refocus(Math.max(0, i - 1)); }
+  else if (e.key === "ArrowLeft" && i > 0) { e.preventDefault(); moveTo(i, i - 1); refocus(i - 1); }
+  else if (e.key === "ArrowRight" && i < S.draft.words.length - 1) { e.preventDefault(); moveTo(i, i + 1); refocus(i + 1); }
 });
 
 // ---------- home ----------
