@@ -1,0 +1,14 @@
+{
+  "name": "psychbabble",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Word-magnet party game for Android",
+  "scripts": {
+    "android": "cap add android && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.1.2",
+    "@capacitor/cli": "6.1.2",
+    "@capacitor/core": "6.1.2"
+  }
+}

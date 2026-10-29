@@ -1,0 +1,6 @@
+{
+  "appId": "com.psychbabble.game",
+  "appName": "Psychbabble",
+  "webDir": "www",
+  "android": { "backgroundColor": "#C6C98F" }
+}
