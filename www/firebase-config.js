@@ -1,15 +1,8 @@
-// Paste your Firebase web app settings here (Project settings → Your apps → Web).
-// These values identify your project; they are not passwords. Access is
-// controlled by the rules in database.rules.json.
-window.PB_FIREBASE = null;
-/* Example shape:
+// Firebase web app settings for Psychbabble. These identify the project;
+// they are not passwords. Access is controlled by database.rules.json.
 window.PB_FIREBASE = {
-  apiKey: "…",
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "…",
-  appId: "…"
+  apiKey: "AIzaSyCl7w8Kb_7vNDlwXEJ85LQc3xJmReFgABI",
+  authDomain: "psychbabble-ef3d1.firebaseapp.com",
+  databaseURL: "https://psychbabble-ef3d1-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "psychbabble-ef3d1"
 };
-*/
