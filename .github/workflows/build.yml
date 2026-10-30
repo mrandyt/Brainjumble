@@ -31,7 +31,7 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Add the Psychbabble icon
+      - name: Add the Brain Jumble icon
         run: cp -r resources/android/res/* android/app/src/main/res/
 
       - name: Use the repo's signing key so new builds install over old ones
@@ -46,18 +46,18 @@ jobs:
           ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Psychbabble.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk BrainJumble.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Psychbabble-apk
-          path: Psychbabble.apk
+          name: BrainJumble-apk
+          path: BrainJumble.apk
 
       - name: Publish as the "latest" release (easy download on a phone)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest Psychbabble.apk \
-            --title "Psychbabble (latest build)" \
-            --notes "Download Psychbabble.apk on your Android phone and open it to install. Built from ${GITHUB_SHA::7}."
+          gh release create latest BrainJumble.apk \
+            --title "Brain Jumble (latest build)" \
+            --notes "Download BrainJumble.apk on your Android phone and open it to install. Built from ${GITHUB_SHA::7}."

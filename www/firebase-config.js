@@ -1,4 +1,4 @@
-// Firebase web app settings for Psychbabble. These identify the project;
+// Firebase web app settings for Brain Jumble. These identify the project;
 // they are not passwords. Access is controlled by database.rules.json.
 window.PB_FIREBASE = {
   apiKey: "AIzaSyCl7w8Kb_7vNDlwXEJ85LQc3xJmReFgABI",

@@ -1,4 +1,4 @@
-// Psychbabble word banks and themed rooms.
+// Brain Jumble word banks and themed rooms.
 // Each room has its own prompts and its own extra magnets, which are mixed
 // into every deal alongside the general bank (except Just for Kids, which
 // only ever uses kid-safe words).

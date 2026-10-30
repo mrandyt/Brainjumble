@@ -1,6 +1,6 @@
 {
   "appId": "com.psychbabble.game",
-  "appName": "Psychbabble",
+  "appName": "Brain Jumble",
   "webDir": "www",
   "android": { "backgroundColor": "#C6C98F" }
 }

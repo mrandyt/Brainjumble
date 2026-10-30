@@ -1,19 +1,19 @@
-# Psychbabble
+# Brain Jumble
 
 **A fridge-magnet party game for Android phones.** Everyone gets the same silly question and the same pile of word magnets. You've got 75 seconds to stick together the funniest answer you can, then everyone votes, anonymously, for their favourite.
 
-It's a fan-made revival of the much-missed online game *Psychbabble*, rebuilt so friends can play it again on their phones, from anywhere.
+Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*, rebuilt so friends can play it again on their phones, from anywhere.
 
 <p align="center">
-  <img src="docs/screenshots/01-home.png" width="250" alt="Home screen with the Psychbabble logo in alphabet magnets and a grid of themed rooms">
+  <img src="docs/screenshots/01-home.png" width="250" alt="Home screen with the Brain Jumble logo in alphabet magnets and a grid of themed rooms">
   <img src="docs/screenshots/04-build.png" width="250" alt="Building an answer from word magnets under the question 'What aliens say about us'">
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
 ## Download and install
 
-1. On your Android phone, open this repo's **[Releases](../../releases/latest)** page and tap **Psychbabble (latest build)**.
-2. Download `Psychbabble.apk` and open it.
+1. On your Android phone, open this repo's **[Releases](../../releases/latest)** page and tap **Brain Jumble (latest build)**.
+2. Download `BrainJumble.apk` and open it.
 3. If Android asks, allow installs from your browser ("Install unknown apps"), then tap **Install**.
 
 New versions install straight over the old one, so updating is the same three steps. Everyone playing together should be on the latest version.

@@ -1,4 +1,4 @@
-// Psychbabble network layer: Firebase Realtime Database, shaped like the
+// Brain Jumble network layer: Firebase Realtime Database, shaped like the
 // "room" interface the game engine was written against.
 //
 // Data layout:
