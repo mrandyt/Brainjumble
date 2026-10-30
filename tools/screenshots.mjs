@@ -22,15 +22,25 @@ const OPEN = [
 const glue = new Set(["i","you","my","the","a","is","and","of","to","in","not","me","it","your"]);
 const label = w => w.replace(/(?<=\S)-(?=\S)/g, " ");
 function compose(ws) { let o = ""; for (const w of ws) { if (w.startsWith("-") && o) o += w.slice(1); else o += (o ? " " : "") + label(w); } return o; }
-function botAnswer(tiles, n) {
+// Scripted answers for the screenshot rooms (see FORCE below), so the
+// vote and results screens read like a real game.
+const LINES = {
+  space: [
+    ["earthling", "-s", "are", "basically", "sweaty", "sausage", "-s"],
+    ["they", "invent", "-ed", "Monday", "-s", "and", "nobody", "complain", "-ed"],
+    ["avoid", "the", "pigeon", "-s", "they", "know", "everything"]
+  ],
+  paranormal: [
+    ["garlic", "and", "regret"],
+    ["moisturise", "with", "fog"],
+    ["no", "mirror", "-s", "no", "problem", "-s"]
+  ]
+};
+function botAnswer(tiles, n, theme) {
+  const lines = LINES[theme];
+  if (lines) { const w = lines[n % lines.length]; return { w, t: compose(w) }; }
   const big = tiles.filter(t => !t.startsWith("-") && !glue.has(t.toLowerCase()));
-  const has = w => tiles.includes(w);
-  const forms = [
-    ["my", big[n * 3], "is", big[n * 3 + 1]],
-    ["the", big[n * 3 + 2], big[n * 3 + 3], "and", "my", big[n * 3 + 4], has("-s") ? "-s" : null],
-    ["I", big[n * 3 + 5], "your", big[n * 3 + 6], has("-ly") ? "-ly" : null]
-  ];
-  const w = forms[n % forms.length].filter(Boolean);
+  const w = ["my", big[n * 2], "is", big[n * 2 + 1]].filter(Boolean);
   return { w, t: compose(w) };
 }
 
@@ -56,14 +66,14 @@ function makeRoom(code) {
     const key = g.gid + "." + g.round;
     if (g.phase === "build" && lastKey !== key) {
       lastKey = key;
-      BOTS.forEach(([id], i) => setTimeout(() => { pres[id] = { ...pres[id], a: { k: key, ...botAnswer(g.tiles, i) } }; fire(); }, 600 + i * 400));
+      BOTS.forEach(([id], i) => setTimeout(() => { pres[id] = { ...pres[id], a: { k: key, ...botAnswer(g.tiles, i, g.theme) } }; fire(); }, 600 + i * 400));
     }
     if (g.phase === "vote" && lastVote !== key) {
       lastVote = key;
       // Wait until the player has voted, then the bots vote (mostly for the player).
       const tryVote = () => {
         if (!(pres.me.v && pres.me.v.k === key)) { setTimeout(tryVote, 300); return; }
-        BOTS.forEach(([id], i) => { const pick = i < 2 ? "me" : "sam"; pres[id] = { ...pres[id], v: { k: key, p: pick } }; });
+        BOTS.forEach(([id], i) => { const pick = i < 2 ? "me" : "sam"; /* Sam and Priya back the player; Jo backs Sam */ pres[id] = { ...pres[id], v: { k: key, p: pick } }; });
         fire();
       };
       setTimeout(tryVote, 500);
@@ -83,6 +93,22 @@ function makeRoom(code) {
 }
 `;
 
+// Pins the question and makes sure the words for the player's answer are dealt.
+const FORCE_JS = String.raw`
+const FORCE = {
+  space: { prompt: "What aliens say about us", words: ["planet", "smell", "soggy", "toast"] },
+  paranormal: { prompt: "The vampire's skincare routine", words: ["moist", "garlic", "cucumber", "sad"] }
+};
+for (const [id, f] of Object.entries(FORCE)) { const r = ROOMS.find(x => x.id === id); r.prompts.splice(0, r.prompts.length, f.prompt); }
+export function deal(id, rnd) {
+  const d = _deal(id, rnd); const f = FORCE[id]; if (!f) return d;
+  const missing = f.words.filter(w => !d.includes(w));
+  const slots = d.map((x, i) => i).filter(i => !GLUE.includes(d[i]) && !f.words.includes(d[i]));
+  missing.forEach((w, j) => { d[slots[(j * 7 + 3) % slots.length]] = w; });
+  return d;
+}
+`;
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function phone(browser, scheme) {
@@ -94,6 +120,11 @@ async function phone(browser, scheme) {
   const page = await ctx.newPage();
   page.on("pageerror", e => { console.error("PAGE ERROR:", e.message); process.exitCode = 1; });
   await page.route("**/net.js", r => r.fulfill({ contentType: "text/javascript", body: FAKE_NET }));
+  await page.route("**/words.js", async r => {
+    const res = await r.fetch();
+    const body = (await res.text()).replace("export function deal(", "function _deal(") + FORCE_JS;
+    await r.fulfill({ response: res, body });
+  });
   await page.goto(URL);
   await page.evaluate(() => document.fonts.ready);
   await sleep(600);
@@ -106,7 +137,6 @@ async function placeWords(page, plan) {
   for (const want of plan) {
     const ok = await page.evaluate(want => {
       const mags = [...document.querySelectorAll('.tray [data-act="place"]')];
-      const glue = ["I", "you", "my", "the", "a", "is", "and", "of", "to", "in", "not", "me", "it", "your"];
       let el = want === "*" ? mags.find(m => !m.classList.contains("glue")) : mags.find(m => m.textContent === want);
       if (!el) return false;
       el.click(); return true;
@@ -138,7 +168,7 @@ const browser = await chromium.launch();
   // 4: building an answer
   await page.click('[data-act="start"]');
   await sleep(900);
-  await placeWords(page, ["my", "*", "is", "*", "-s", "and", "*"]);
+  await placeWords(page, ["your", "planet", "smell", "-s", "of", "soggy", "toast"]);
   await sleep(400);
   await page.evaluate(() => window.scrollTo(0, 0));
   await sleep(200);
@@ -148,7 +178,7 @@ const browser = await chromium.launch();
   await page.click('[data-act="submit"]');
   await page.waitForSelector('.strip[data-act="vote"]', { timeout: 15000 });
   await sleep(700);
-  await page.click('.strip[data-act="vote"]:not([disabled])');
+  await page.click('.strip[data-act="vote"]:not([disabled]) >> nth=1');
   await sleep(250);
   await page.evaluate(() => window.scrollTo(0, 0));
   await shot(page, "05-vote");
@@ -169,7 +199,7 @@ const browser = await chromium.launch();
   await sleep(700);
   await page.click('[data-act="start"]');
   await sleep(900);
-  await placeWords(page, ["the", "*", "*", "is", "*"]);
+  await placeWords(page, ["moist", "garlic", "and", "a", "sad", "cucumber"]);
   await sleep(400);
   await page.evaluate(() => window.scrollTo(0, 0));
   await shot(page, "07-dark");

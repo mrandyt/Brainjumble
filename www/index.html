@@ -611,6 +611,8 @@ function render() {
   else html = viewNoHost();
   if (S.solo) html = `<p class="note">Solo practice: nobody else can join this one, so voting is skipped.</p>` + html;
   st.innerHTML = html;
+  const chip = st.querySelector('.room-scroll [aria-pressed="true"]');
+  if (chip) { const sc = chip.parentElement; sc.scrollLeft = chip.offsetLeft - sc.offsetLeft - (sc.clientWidth - chip.offsetWidth) / 2; }
   updateTimer();
 }
 function updateTimer() {
