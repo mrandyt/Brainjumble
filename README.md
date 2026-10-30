@@ -1,6 +1,10 @@
 # Psychbabble
 
-A word-magnet party game for Android. Everyone gets the same prompt and the same pile of word tiles, builds an answer, then votes anonymously for the best one.
+A fridge-magnet party game for Android. Pick a themed room, and everyone gets the same question and the same pile of word magnets, builds an answer, then votes anonymously for the best one.
+
+## Rooms
+
+Classic, Politics, Sport, Grown-ups, Gaming, Royalty, Just for Kids, Weather, Books, Space, Paranormal, and After Dark (18+, asks players to confirm their age). Each room has its own questions and its own magnets mixed in with the general word bank (about 1,500 words in all). Just for Kids only uses kid-safe words. Rooms, questions and words live in `www/words.js`.
 
 ## Install on a phone
 
@@ -12,7 +16,7 @@ New builds install over the old one, so updating is the same three steps.
 
 ## How it's built
 
-- `www/` is the game itself (HTML/JS). `www/net.js` connects players through Firebase Realtime Database.
+- `www/` is the game itself (HTML/JS). `www/words.js` holds the rooms, questions and word bank. `www/net.js` connects players through Firebase Realtime Database.
 - Every push to `main` makes GitHub Actions wrap `www/` in an Android app with Capacitor and publish the APK as the `latest` release.
 - `signing/debug.keystore` keeps the signing key the same between builds so updates install cleanly. It's a standard debug key, not a secret.
 

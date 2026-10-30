@@ -41,7 +41,7 @@ function makeLobby(db, uid) {
       .filter(([, x]) => x && typeof x.at === "number" && x.at > cutoff)
       .map(([code, x]) => ({
         peer: code, sameTab: x.uid === uid, isMe: x.uid === uid, kind: "viewer",
-        presence: { hosting: code, n: x.n, np: x.np, ph: x.ph }
+        presence: { hosting: code, n: x.n, np: x.np, ph: x.ph, t: x.t }
       }));
     handlers.forEach(h => h({ peers: snap }));
   });
@@ -53,7 +53,7 @@ function makeLobby(db, uid) {
         myCode = patch.hosting;
         const r = ref(db, "lobby/" + myCode);
         onDisconnect(r).remove();
-        return set(r, { uid, n: String(patch.n || ""), np: +patch.np || 0, ph: String(patch.ph || "lobby"), at: serverTimestamp() });
+        return set(r, { uid, n: String(patch.n || ""), np: +patch.np || 0, ph: String(patch.ph || "lobby"), t: String(patch.t || "classic"), at: serverTimestamp() });
       }
       if (patch.hosting === null && myCode) {
         const r = ref(db, "lobby/" + myCode);
