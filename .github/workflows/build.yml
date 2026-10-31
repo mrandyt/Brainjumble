@@ -26,18 +26,19 @@ jobs:
       - name: Install Capacitor
         run: npm install
 
+      - name: Stamp the app version from package.json
+        run: echo "export const APP_VERSION = \"$(node -p "require('./package.json').version")\";" > www/version.js
+
       - name: Create the Android project
         run: |
           npx cap add android
           npx cap sync android
 
+      - name: Sign with the repo key and raise the version code
+        run: node tools/configure-android.mjs $((100 + ${{ github.run_number }}))
+
       - name: Add the Brain Jumble icon
         run: cp -r resources/android/res/* android/app/src/main/res/
-
-      - name: Use the repo's signing key so new builds install over old ones
-        run: |
-          mkdir -p ~/.android
-          cp signing/debug.keystore ~/.android/debug.keystore
 
       - name: Build the APK
         run: |
@@ -47,6 +48,13 @@ jobs:
 
       - name: Rename APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk BrainJumble.apk
+
+      - name: Check it's signed with the repo key (otherwise updates won't install)
+        run: |
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs BrainJumble.apk | tee certs.txt
+          grep -qi "SHA-256 digest: f92a22f102b98d0ff92ca1e2dc9072c641af0cc5111543ca2f3dcf905591d883" certs.txt \
+            || { echo "::error::APK is not signed with signing/debug.keystore"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:

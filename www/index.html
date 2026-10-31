@@ -194,6 +194,14 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 .full{text-align:center;align-items:center!important}
 .game-row.is-full{opacity:.55}
+.update-pop{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,12,18,.55)}
+.update-card{background:var(--panel-solid);color:var(--ink);border-radius:22px;padding:22px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.update-card h2{margin:0;font-family:var(--f-display);font-size:24px;line-height:1.15}
+.update-card p{margin:0}
+.update-card ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.update-card .btn{box-sizing:border-box;display:block;text-align:center;text-decoration:none}
+.update-banner{display:block;position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;text-align:center;background:var(--btn);color:var(--btn-ink);text-decoration:none;font-weight:700}
+.version-note{text-align:center;margin:0}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 <script src="firebase-config.js"></script>
@@ -242,6 +250,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
       </ol>
     </details>
   </section>
+  <p class="version-note muted small" id="versionNote"></p>
 </main>
 
 <main class="wrap" id="game" hidden>
@@ -258,6 +267,8 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 <script type="module">
 import { connect } from "./net.js";
 import { ROOMS, roomOf, deal, GLUE, label, isPunct } from "./words.js";
+import { APP_VERSION } from "./version.js";
+import { checkForUpdate } from "./update.js";
 (() => {
 "use strict";
 const COLORS = ["#E5484D","#D9530A","#E2A400","#208A57","#0D8A7B","#0072D6","#3E63DD","#8E4EC6","#D6409F","#5B606B"];
@@ -386,12 +397,45 @@ function setG(g) {
   S.room.presence({ g, host: true }).catch(() => {});
   schedule();
 }
+// ---------- questions nobody has had yet ----------
+// Every phone remembers the questions it has seen (saved on the phone, so it
+// survives closing the app) and shares the ones for the current room with the
+// game. The host then picks a question that nobody here has seen; if that's
+// impossible, one the fewest people have seen; never one already used this game.
+const SEEN_KEY = "pb.seen", SEEN_MAX = 4000;
+const pid = p => hash(p).toString(36);
+const seen = (() => { try { return JSON.parse(store.get(SEEN_KEY) || "[]"); } catch { return []; } })();
+const seenSet = new Set(seen);
+function markSeen(prompt) {
+  if (!prompt) return;
+  const id = pid(prompt);
+  if (seenSet.has(id)) return;
+  seenSet.add(id); seen.push(id);
+  if (seen.length > SEEN_MAX) seenSet.delete(seen.shift());
+  store.set(SEEN_KEY, JSON.stringify(seen));
+}
+// The seen questions for one room, as a short string to share with the game.
+const seenFor = theme => roomOf(theme).prompts.map(pid).filter(id => seenSet.has(id)).join(" ");
+function shareSeen(theme) {
+  if (!S.room || S.solo) return;
+  const sn = seenFor(theme);
+  if (S.sharedSeen === theme + ":" + sn) return;
+  S.sharedSeen = theme + ":" + sn;
+  S.room.presence({ sn }).catch(() => {});
+}
 function nextPrompt(theme) {
   const list = roomOf(theme).prompts;
   const used = S.usedPrompts[theme] || (S.usedPrompts[theme] = []);
-  let pool = list.filter(p => !used.includes(p));
-  if (!pool.length) { used.length = 0; pool = list; }
-  const p = pool[rnd(pool.length)]; used.push(p); return p;
+  const others = players().filter(p => p.peer !== S.myPeer).map(p => new Set(String(p.presence.sn || "").split(" ")));
+  let best = [], low = Infinity;
+  for (const q of list) {
+    if (used.includes(q)) continue;
+    const id = pid(q);
+    const score = (seenSet.has(id) ? 1 : 0) + others.reduce((n, set) => n + (set.has(id) ? 1 : 0), 0);
+    if (score < low) { low = score; best = [q]; } else if (score === low) best.push(q);
+  }
+  if (!best.length) { used.length = 0; best = list.slice(); }
+  const p = best[rnd(best.length)]; used.push(p); markSeen(p); return p;
 }
 function startGame() {
   const g = { ...newLobbyG(S.hostG.theme), dur: S.settings.dur, cheeky: S.settings.cheeky };
@@ -641,8 +685,10 @@ function render() {
   if (g && g.phase === "build") {
     const key = keyOf(g);
     if (S.draft.key !== key) S.draft = { key, words: [], caret: 0 };
+    markSeen(g.prompt);
   }
   const r = roomOf(g ? g.theme : S.pick);
+  shareSeen(r.id);
   paintRoom(r.id);
   $("#barCode").textContent = S.code;
   $("#barRoom").innerHTML = `<span aria-hidden="true">${r.emoji}</span><span>${esc(r.name)}${g ? " · " + esc(PHASE_LABEL[g.phase] || "") : ""}</span>`;
@@ -741,7 +787,7 @@ async function enterRoom(code, host) {
     const here = r.peers().filter(p => p.presence && typeof p.presence.n === "string" && p.presence.n).length;
     if (here >= MAX_PLAYERS) { r.leave().catch(() => {}); toast(`That game is full (${MAX_PLAYERS} players max).`); return; }
   }
-  S.room = r; S.code = code; S.hosting = !!host; S.mine = {}; S.draft = { key: null, words: [], caret: 0 }; S.lastG = null; S.myPeer = S.solo ? "solo" : null;
+  S.room = r; S.code = code; S.hosting = !!host; S.mine = {}; S.draft = { key: null, words: [], caret: 0 }; S.lastG = null; S.myPeer = S.solo ? "solo" : null; S.sharedSeen = null;
   S.unsub = r.onPeers(ch => {
     S.peers = ch.peers;
     const me = ch.peers.find(p => p.sameTab); if (me) S.myPeer = me.peer;
@@ -956,6 +1002,15 @@ function updateHomeMode() {
 
 setInterval(() => { hostTick(); updateTimer(); autoSubmit(); }, 400);
 renderLogo(); renderColors(); renderHome();
+$("#versionNote").textContent = "Brain Jumble " + APP_VERSION;
+
+// Look for a newer version on GitHub when the app opens, and again when it
+// comes back to the front (at most once an hour).
+let lastUpdateCheck = Date.now();
+checkForUpdate();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && Date.now() - lastUpdateCheck > 3600 * 1000) { lastUpdateCheck = Date.now(); checkForUpdate(); }
+});
 
 (async () => {
   let room = null; S.netError = null;

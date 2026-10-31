@@ -1,11 +1,15 @@
-## Brain Jumble 1.1 — What's new
+## Brain Jumble 1.2 — What's new
 
-- **Punctuation magnets.** Every round now deals `?` `!` `'` `,` `.` `#` `@` `-` `&` as dark round magnets. They stick where you'd expect: `toast` + `!` reads "toast!", `dog` + `'` + `s` reads "dog's", `#` + `Monday` reads "#Monday".
-- **Cheeky words.** A handful of mildly rude words (pee, poo, turd, bum, willy, boobs, bloody, bugger and friends, nothing too vulgar) are mixed into every room's deal. After Dark gets a few extra. They're never dealt in Just for Kids, and the host can turn them off in the lobby.
-- **Up to 10 players.** Games are capped at 10. Full games show **Full** in the room list, and anyone extra sees a "this game is full" screen.
-- **First to 10 points wins.** Each vote your answer gets is worth 1 point. The game ends as soon as someone reaches 10 (ties share the win), so the old rounds setting is gone.
-- **A round of applause for the winner.** The final screen claps, cheers and throws confetti for the winner. Tap **Clap again** for an encore.
+- **Over 800 new questions.** Every room now has around 100 questions (Classic has 163), up from about 30. That's 1,221 altogether, up from 407.
+- **No more repeated questions.** Each phone now remembers which questions it has already seen, even after closing the app. When a round starts, the host picks a question nobody in the game has had before. Only when a room has truly been played out does a question come round again, and never twice in one game.
+- **Update alerts.** When a new version is published here, the app pops up a message when it opens, with a **Get the update** button that brings you straight to this page. Tap **Later** and a small reminder stays at the top of the screen.
+- **Updates install over the old app.** Earlier builds were accidentally signed with a different key each time, which is why Android made you uninstall first. From this version on, every build is signed with the same key, so new versions install straight over the top.
+- **Version number on the home screen**, at the bottom, so you can check everyone's on the same one.
 
-Everyone playing together should update to this version.
+### Installing 1.2
 
-**Install:** download `BrainJumble.apk` below on your Android phone and open it. It installs straight over the old version.
+**This one time only:** because 1.1 and earlier were signed with a different key, you'll need to **uninstall the old Brain Jumble first**, then install this one. You only lose your saved nickname and colour.
+
+From 1.2 onwards, updates install straight over the top. Everyone playing together should update.
+
+**Install:** download `BrainJumble.apk` below on your Android phone and open it.

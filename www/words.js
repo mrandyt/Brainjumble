@@ -3,6 +3,8 @@
 // into every deal alongside the general bank (except Just for Kids, which
 // only ever uses kid-safe words).
 
+import { MORE_PROMPTS } from "./prompts-more.js";
+
 const w = s => s.trim().split(/\s+/);
 const uniq = a => [...new Set(a)];
 
@@ -339,6 +341,12 @@ export const ROOMS = [
     ]
   }
 ];
+
+// Add the 1.2 questions to each room (dropping any duplicates).
+for (const r of ROOMS) {
+  const have = new Set(r.prompts.map(p => p.toLowerCase()));
+  for (const p of MORE_PROMPTS[r.id] || []) if (!have.has(p.toLowerCase())) { have.add(p.toLowerCase()); r.prompts.push(p); }
+}
 
 export const ROOM_BY_ID = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 export const roomOf = id => ROOM_BY_ID[id] || ROOM_BY_ID.classic;

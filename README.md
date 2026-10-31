@@ -10,7 +10,15 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
-## What's new in 1.1
+## What's new in 1.2
+
+- **Over 800 new questions.** Every room now has around 100 (1,221 altogether, up from 407).
+- **No more repeated questions.** Each phone remembers what it's seen, even after closing the app, and the host picks questions nobody in the game has had yet.
+- **Update alerts.** When a new version comes out, the app tells you and links straight to the download.
+- **Updates install over the old app.** No more uninstalling first (after this one-time move to 1.2, see below).
+- **Version number** at the bottom of the home screen.
+
+### Earlier: 1.1
 
 - **Punctuation magnets:** `?` `!` `'` `,` `.` `#` `@` `-` `&` in every round.
 - **Cheeky words:** mildly rude words like *pee*, *poo*, *bum*, *willy* and *bloody* (nothing too vulgar). Never in Just for Kids, and the host can switch them off.
@@ -30,7 +38,9 @@ Full notes for each version are on the [Releases](../../releases/latest) page.
 2. Download `BrainJumble.apk` and open it.
 3. If Android asks, allow installs from your browser ("Install unknown apps"), then tap **Install**.
 
-New versions install straight over the old one, so updating is the same three steps. Everyone playing together should be on the latest version.
+From version 1.2, new versions install straight over the old one, so updating is the same three steps. When a new version is out, the app pops up a message with a **Get the update** button that brings you here. Everyone playing together should be on the latest version.
+
+**Coming from 1.1 or earlier?** Uninstall the old Brain Jumble first, just this once. Older builds were signed with a different key each time, which is why Android refused to update them. That's fixed from 1.2 on.
 
 ## How a game works
 
@@ -70,7 +80,9 @@ Whoever starts the game is the host. Before starting, they can change the room, 
 
 ## Themed rooms
 
-Each room has its own questions and its own magnets, mixed in with the general word bank. Altogether there are about **1,500 words** and nearly **400 questions**.
+Each room has its own questions and its own magnets, mixed in with the general word bank. Altogether there are about **1,500 words** and over **1,200 questions**, roughly 100 per room.
+
+Each phone remembers which questions it has seen (even after the app is closed) and shares that with the game, so the host picks a question nobody playing has had before.
 
 | Room | What it's like |
 | --- | --- |
@@ -98,6 +110,7 @@ The app follows your phone's light or dark setting automatically, and the fridge
 Everything lives in [`www/words.js`](www/words.js):
 
 - Each room in `ROOMS` has a `prompts` list (the questions) and a `words` list (that room's extra magnets).
+- More questions for each room are in [`www/prompts-more.js`](www/prompts-more.js), grouped by room. Add new ones to either file; duplicates are dropped automatically.
 - The general bank shared by most rooms is in `NOUNS`, `VERBS`, `ADJS` and `WILD`.
 - The mildly rude words are in `CHEEKY`, and the punctuation magnets in `PUNCT`.
 - For a magnet with more than one word, join the words with hyphens, like `ice-cream`. It shows on the magnet as "ice cream".
@@ -109,11 +122,14 @@ Edit the file on GitHub and commit. A new APK is built automatically within a fe
 - **`www/`** is the whole game in plain HTML and JavaScript.
   - `www/index.html` holds the screens and game rules.
   - `www/words.js` holds the rooms, questions and word bank.
+  - `www/prompts-more.js` holds the extra questions added in 1.2.
   - `www/net.js` connects players through Firebase.
+  - `www/update.js` checks GitHub for a newer release when the app opens and shows the update message.
 - **Multiplayer** runs on Firebase Realtime Database, on the free plan. The host's phone runs the game and everyone else's phone follows along. Each player only writes their own answer and vote.
 - **The Android app** is built by GitHub Actions (`.github/workflows/build.yml`). On every push to `main`, it wraps `www/` with Capacitor, builds the APK, and publishes it as the `latest` release, using `RELEASE_NOTES.md` as the release description.
 - **The screenshots** are taken by `.github/workflows/screenshots.yml`, which plays a quick game in a phone-sized browser with three pretend friends.
-- `signing/debug.keystore` keeps the signing key the same between builds, so updates install cleanly. It's a standard debug key, not a secret.
+- `signing/debug.keystore` keeps the signing key the same between builds, so updates install cleanly. `tools/configure-android.mjs` tells the Android build to use it and gives each build a higher version code, and the build fails if the APK isn't signed with it. It's a standard debug key, not a secret.
+- **Releasing a new version:** bump `version` in `package.json` and update `RELEASE_NOTES.md`, then push. The app's update message compares its own version against the number in the release title.
 
 ### Firebase setup (one time)
 
