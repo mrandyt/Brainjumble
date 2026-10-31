@@ -4,7 +4,7 @@
 // the GitHub download page. Only runs inside the Android app, not the web page.
 import { APP_VERSION } from "./version.js";
 
-const REPO = "Mrandyt/babble";
+const REPO = "mrandyt/Brainjumble";
 const API = `https://api.github.com/repos/${REPO}/releases/tags/latest`;
 export const DOWNLOAD_PAGE = `https://github.com/${REPO}/releases/tag/latest`;
 
