@@ -68,6 +68,7 @@ button.mag:active{transform:scale(.93)}
 .board [data-bi]{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
 .mag.dragging{opacity:.25}
 .drag-ghost{position:fixed;left:0;top:0;z-index:30;pointer-events:none;margin:0;box-shadow:0 14px 24px rgba(0,0,0,.35)!important}
+.mag.punct{font-size:22px;min-width:34px;justify-content:center;padding:7px 10px 6px;border-radius:999px;--m:#2A2D36;--mi:#FFFDF6}
 .mag.big{font-size:34px;padding:12px 16px 10px;border-radius:14px}
 
 /* Panels */
@@ -179,6 +180,20 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 .codeTiles{display:flex;gap:10px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);color:var(--btn-ink);padding:11px 18px;border-radius:14px;font-weight:800;z-index:20;max-width:calc(100% - 32px);box-shadow:0 10px 24px -8px rgba(0,0,0,.5)}
 .note{font-size:14px;padding:10px 12px;border-radius:14px;background:var(--chip);border:1px solid var(--line);font-weight:700}
+/* Round of applause */
+.applause{position:relative;overflow:hidden;align-items:center!important;text-align:center}
+.applause .claps{font-size:46px;display:flex;gap:10px;justify-content:center}
+.applause .claps span{display:inline-block;animation:clap .45s ease-in-out infinite alternate}
+.applause .claps span:nth-child(2){animation-delay:.15s}
+.applause .claps span:nth-child(3){animation-delay:.3s}
+@keyframes clap{from{transform:scale(1) rotate(-8deg)}to{transform:scale(1.25) rotate(8deg)}}
+.applause h2{animation:bounceIn .6s cubic-bezier(.3,1.6,.6,1)}
+@keyframes bounceIn{from{transform:scale(.4);opacity:0}}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:25;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:3px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.full{text-align:center;align-items:center!important}
+.game-row.is-full{opacity:.55}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 <script src="firebase-config.js"></script>
@@ -222,7 +237,8 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
         <li>Pick a room. Everyone gets the same question and the same pile of word magnets.</li>
         <li>Tap magnets to stick them on your fridge. Little round ones like <b>-ing</b> stick to the word before. Drag a magnet to move it, double-tap it (or drag it off) to take it back. Tap a gap to choose where the next word goes.</li>
         <li>Answers are shown anonymously. Vote for your favourite, but not your own.</li>
-        <li>10 points per vote, 20 bonus for the round's top answer, 5 for voting for it.</li>
+        <li>Every vote your answer gets is 1 point. First to 10 points wins and gets a round of applause.</li>
+        <li>Black round magnets are punctuation (<b>? ! ' , . # @ - &amp;</b>). Up to 10 players per game.</li>
       </ol>
     </details>
   </section>
@@ -241,7 +257,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 
 <script type="module">
 import { connect } from "./net.js";
-import { ROOMS, roomOf, deal, GLUE, label } from "./words.js";
+import { ROOMS, roomOf, deal, GLUE, label, isPunct } from "./words.js";
 (() => {
 "use strict";
 const COLORS = ["#E5484D","#D9530A","#E2A400","#208A57","#0D8A7B","#0072D6","#3E63DD","#8E4EC6","#D6409F","#5B606B"];
@@ -249,6 +265,10 @@ const COLORS = ["#E5484D","#D9530A","#E2A400","#208A57","#0D8A7B","#0072D6","#3E
 const MAGS = [["#E5484D","#fff"],["#D9530A","#fff"],["#FFC53D","#2A1F00"],["#208A57","#fff"],["#0D8A7B","#fff"],["#0072D6","#fff"],["#3E63DD","#fff"],["#8E4EC6","#fff"],["#D6409F","#fff"],["#86EAD4","#0B3B33"],["#FFB8A8","#3B1209"]];
 const GLUE_SET = new Set(GLUE.map(g => g.toLowerCase()));
 const CODE_LETTERS = "BCDFGHJKLMNPQRSTVWXZ";
+const MAX_PLAYERS = 10;   // most players in one game
+const WIN_POINTS = 10;    // first to this many points wins
+const MAX_ROUNDS = 40;    // safety stop if nobody gets there
+const SOLO_ROUNDS = 6;    // solo practice can't score, so it just runs 6 rounds
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
@@ -265,21 +285,28 @@ const store = {
 };
 const rot = i => (((i * 37) % 7) - 3) * 0.8 + "deg";
 const hash = s => { let h = 7; for (const ch of String(s).toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+// Join magnets into a sentence. Punctuation sticks to its neighbours:
+// ? ! , . stick to the word before; ' and - join the words either side;
+// # and @ stick to the word after; & stands on its own.
 function compose(ws) {
-  let out = "";
+  let out = "", join = false;
   for (const w of ws) {
-    if (w.startsWith("-") && out) out += w.slice(1);
-    else out += (out ? " " : "") + label(w);
+    if (w === "?" || w === "!" || w === "," || w === ".") { out += w; join = false; }
+    else if (w === "'" || w === "-") { out += w; join = true; }
+    else if (w === "#" || w === "@") { out += (out && !join ? " " : "") + w; join = true; }
+    else if (w.startsWith("-") && out) { out += w.slice(1); join = false; }
+    else { out += (out && !join ? " " : "") + label(w); join = false; }
   }
   return out;
 }
 function magHtml(word, i, attrs, extra) {
   const wd = String(word);
-  const suf = wd.startsWith("-");
-  const glue = suf || GLUE_SET.has(wd.toLowerCase());
-  const [m, mi] = glue ? ["#FFFDF6", "#1B1D24"] : MAGS[hash(wd) % MAGS.length];
+  const punct = isPunct(wd);
+  const suf = !punct && wd.startsWith("-");
+  const glue = punct || suf || GLUE_SET.has(wd.toLowerCase());
+  const [m, mi] = punct ? ["#2A2D36", "#FFFDF6"] : glue ? ["#FFFDF6", "#1B1D24"] : MAGS[hash(wd) % MAGS.length];
   const tag = attrs ? "button" : "span";
-  return `<${tag} class="mag${glue ? " glue" : ""}${suf ? " suffix" : ""}${extra ? " " + extra : ""}" style="--r:${rot(i)};--m:${m};--mi:${mi}" ${attrs || ""}>${esc(label(wd))}</${tag}>`;
+  return `<${tag} class="mag${glue ? " glue" : ""}${suf ? " suffix" : ""}${punct ? " punct" : ""}${extra ? " " + extra : ""}" style="--r:${rot(i)};--m:${m};--mi:${mi}" ${attrs || ""}>${esc(label(wd))}</${tag}>`;
 }
 // Answers are stored as their sent words when available, so they render as the same magnets.
 function answerMags(a, seed) {
@@ -324,11 +351,16 @@ const S = {
   peers: [], myPeer: null, mine: {},
   draft: { key: null, words: [], caret: 0 },
   hosting: false, hostG: null, lastG: null, adSig: null, autoKey: null,
-  settings: { rounds: 6, dur: 75 }, usedPrompts: {}
+  settings: { dur: 75, cheeky: store.get("pb.cheeky") !== "0" }, usedPrompts: {}, joinedAt: 0
 };
 if (roomOf(S.pick).adult && !S.adult) S.pick = "classic";
 
-const players = () => S.peers.filter(p => p.kind === "viewer" && p.presence && typeof p.presence.n === "string" && clean(p.presence.n, 20));
+const allPlayers = () => S.peers.filter(p => p.kind === "viewer" && p.presence && typeof p.presence.n === "string" && clean(p.presence.n, 20));
+// Only the first 10 people in a room play; anyone after that sees "room full".
+const byJoin = (a, b) => ((+a.presence.j || 0) - (+b.presence.j || 0)) || (a.peer < b.peer ? -1 : a.peer > b.peer ? 1 : 0);
+const players = () => allPlayers().sort(byJoin).slice(0, MAX_PLAYERS);
+const iAmOverflow = () => !S.solo && S.myPeer && !S.hosting && allPlayers().length > MAX_PLAYERS && !players().some(p => p.peer === S.myPeer);
+const topScore = g => Math.max(0, ...Object.values(g.scores || {}));
 const nameOf = p => clean(p.presence.n, 20) || "Someone";
 const colorOf = p => COLORS[(+p.presence.c || 0) % COLORS.length];
 const keyOf = g => g.gid + "." + g.round;
@@ -347,7 +379,7 @@ function currentG() {
 
 // ---------- host engine ----------
 function newLobbyG(theme, keepScores) {
-  return { gid: uid(), phase: "lobby", theme: roomOf(theme).id, round: 0, rounds: S.settings.rounds, dur: S.settings.dur, scores: keepScores || {}, names: {} };
+  return { gid: uid(), phase: "lobby", theme: roomOf(theme).id, round: 0, target: WIN_POINTS, dur: S.settings.dur, cheeky: S.settings.cheeky, scores: keepScores || {}, names: {} };
 }
 function setG(g) {
   S.hostG = g;
@@ -362,12 +394,12 @@ function nextPrompt(theme) {
   const p = pool[rnd(pool.length)]; used.push(p); return p;
 }
 function startGame() {
-  const g = { ...newLobbyG(S.hostG.theme), rounds: S.settings.rounds, dur: S.settings.dur };
+  const g = { ...newLobbyG(S.hostG.theme), dur: S.settings.dur, cheeky: S.settings.cheeky };
   S.hostG = g; startRound();
 }
 function startRound() {
   const g = S.hostG; const t = themeOf(g);
-  setG({ ...g, phase: "build", round: g.round + 1, prompt: nextPrompt(t), tiles: deal(t, rnd), endsAt: now() + g.dur * 1000, ans: null, res: null });
+  setG({ ...g, phase: "build", round: g.round + 1, prompt: nextPrompt(t), tiles: deal(t, rnd, { cheeky: g.cheeky !== false }), endsAt: now() + g.dur * 1000, ans: null, res: null });
 }
 function snapshotNames(g) {
   const names = { ...g.names };
@@ -393,10 +425,8 @@ function toReveal() {
   });
   const max = Math.max(0, ...Object.values(tally));
   const res = {};
-  ans.forEach(a => { const votes = tally[a.p]; const win = max > 0 && votes === max; res[a.p] = { votes, win, pts: votes * 10 + (win ? 20 : 0), bonus: 0 }; });
-  ballots.forEach(([voter, choice]) => {
-    if (res[choice] && res[choice].win) { res[voter] = res[voter] || { votes: 0, win: false, pts: 0, bonus: 0 }; res[voter].pts += 5; res[voter].bonus += 5; }
-  });
+  // 1 point per vote. First to 10 points wins the game.
+  ans.forEach(a => { const votes = tally[a.p]; const win = max > 0 && votes === max; res[a.p] = { votes, win, pts: votes, bonus: 0 }; });
   const scores = { ...g.scores };
   for (const p in res) scores[p] = (scores[p] || 0) + res[p].pts;
   setG({ ...g, phase: "reveal", res, scores, names: snapshotNames(g), endsAt: now() + 9000 + ans.length * 1500 });
@@ -416,7 +446,7 @@ function hostTick() {
     const done = voters.filter(p => p.presence.v && p.presence.v.k === key);
     if (t >= g.endsAt || (voters.length && done.length === voters.length)) toReveal();
   } else if (g.phase === "reveal") {
-    if (t >= g.endsAt) { if (g.round >= g.rounds) setG({ ...g, phase: "final", endsAt: null }); else startRound(); }
+    if (t >= g.endsAt) { if (topScore(g) >= (g.target || WIN_POINTS) || g.round >= (S.solo ? SOLO_ROUNDS : MAX_ROUNDS)) setG({ ...g, phase: "final", endsAt: null }); else startRound(); }
   }
   advertise();
 }
@@ -479,7 +509,7 @@ function scoreTable(g) {
 }
 const pinColor = g => MAGS[hash(g.prompt || "") % MAGS.length][0];
 function promptNote(g, label2) {
-  return `<section class="note-card" style="--pin:${pinColor(g)}"><span class="eyebrow">Round ${g.round} of ${g.rounds}${label2 ? " · " + label2 : ""}</span><h2>${esc(g.prompt)}</h2></section>`;
+  return `<section class="note-card" style="--pin:${pinColor(g)}"><span class="eyebrow">Round ${g.round} · First to ${g.target || WIN_POINTS}${label2 ? " · " + label2 : ""}</span><h2>${esc(g.prompt)}</h2></section>`;
 }
 
 function viewAdultGate() {
@@ -488,6 +518,13 @@ function viewAdultGate() {
     <p>This room has cheeky, grown-up questions and words. Please confirm you're 18 or over to play.</p>
     <div class="row"><button class="btn primary" data-act="confirmAdult">I'm 18 or over</button><button class="btn" data-act="leave">Leave</button></div>
   </div></section>`;
+}
+function viewFull() {
+  return `<section class="card full">
+    <h2>This game is full</h2>
+    <p class="muted">Games have a maximum of ${MAX_PLAYERS} players. Start your own game, or wait here and you'll get in if someone leaves.</p>
+    <button class="btn primary" data-act="leave">Back to rooms</button>
+  </section>`;
 }
 function viewNoHost() {
   return `<section class="card">
@@ -508,15 +545,16 @@ function viewLobby(g) {
     <p class="muted small">${S.solo ? "Solo practice. Friends can't join from this view." : "Friends open the app and type this code, or tap your game in the " + esc(r.name) + " room."}</p>
   </section>
   <section class="card">
-    <div class="card-head"><h3>Players (${n})</h3></div>
+    <div class="card-head"><h3>Players (${n}/${MAX_PLAYERS})</h3>${n >= MAX_PLAYERS ? `<span class="badge">Full</span>` : ""}</div>
     ${playerChips(g)}
     ${isHost ? `
       <div class="field"><span class="eyebrow">Room</span><div class="room-scroll">${ROOMS.map(x => `<button style="--rc:${x.door}" data-act="theme" data-v="${x.id}" aria-pressed="${x.id === r.id}"><span aria-hidden="true">${x.emoji}</span>${esc(x.name)}${x.adult ? " 18+" : ""}</button>`).join("")}</div></div>
-      <div class="field"><span class="eyebrow">Rounds</span><div class="seg">${[4, 6, 8, 10].map(v => `<button data-act="rounds" data-v="${v}" aria-pressed="${g.rounds === v}">${v}</button>`).join("")}</div></div>
+      ${r.kids ? "" : `<div class="field"><span class="eyebrow">Cheeky words</span><div class="seg"><button data-act="cheeky" data-v="1" aria-pressed="${g.cheeky !== false}">On</button><button data-act="cheeky" data-v="0" aria-pressed="${g.cheeky === false}">Off</button></div></div>`}
+      <p class="muted small">First to ${g.target || WIN_POINTS} points wins. 1 point for every vote your answer gets.</p>
       <div class="field"><span class="eyebrow">Time to build</span><div class="seg">${[45, 75, 120].map(v => `<button data-act="dur" data-v="${v}" aria-pressed="${g.dur === v}">${v}s</button>`).join("")}</div></div>
       <button class="btn primary wide" data-act="start">Start ${esc(r.name)} game</button>
       ${n < 3 && !S.solo ? `<p class="muted small">Best with 3 or more. Voting needs at least 2 answers.</p>` : ""}`
-    : `<p class="muted">Waiting for the host to start. ${esc(r.emoji)} ${esc(r.name)} · ${g.rounds} rounds · ${g.dur}s each.</p>`}
+    : `<p class="muted">Waiting for the host to start. ${esc(r.emoji)} ${esc(r.name)} · first to ${g.target || WIN_POINTS} points · ${g.dur}s each${!r.kids && g.cheeky !== false ? " · cheeky words on" : ""}.</p>`}
   </section>`;
 }
 function viewBuild(g) {
@@ -566,21 +604,29 @@ function viewReveal(g) {
     const r = g.res[a.p] || { votes: 0, pts: 0 };
     return `<div class="strip">
       <span class="words">${answerMags(a, i)}</span>
-      <span class="meta"><b>${esc((g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span><span class="muted">+${r.pts}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
+      <span class="meta"><b>${esc((g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span><span class="muted">+${r.pts} pt${r.pts === 1 ? "" : "s"}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
     </div>`;
   }).join("") : `<p class="muted">Nobody sent an answer this round.</p>`;
-  const myBonus = g.res && g.res[S.myPeer] && g.res[S.myPeer].bonus ? `<p class="note">+${g.res[S.myPeer].bonus} for backing the top answer.</p>` : "";
   return `${promptNote(g, "Results")}
-    <div class="strips">${strips}</div>${myBonus}
-    <section class="card"><h3>Scores</h3>${scoreTable(g)}<p class="muted small">${g.round >= g.rounds ? "Final scores coming up." : "Next round starts shortly."}</p></section>`;
+    <div class="strips">${strips}</div>
+    <section class="card"><h3>Scores</h3>${scoreTable(g)}<p class="muted small">${topScore(g) >= (g.target || WIN_POINTS) ? "We have a winner! 👏" : `First to ${g.target || WIN_POINTS} wins. Next round starts shortly.`}</p></section>`;
 }
 function viewFinal(g) {
   const rows = Object.entries(g.scores || {}).sort((a, b) => b[1] - a[1]);
-  const top = rows[0];
-  const winner = top ? esc((g.names || {})[top[0]] || "Someone") : "Nobody";
-  return `<section class="card" style="align-items:flex-start">
+  const best = rows.length ? rows[0][1] : 0;
+  const tops = rows.filter(([, s]) => s === best && best > 0).map(([p]) => p);
+  const nm = p => esc((g.names || {})[p] || "Someone");
+  const winner = tops.length ? tops.map(nm).join(" & ") : "Nobody";
+  const iWon = tops.includes(S.myPeer);
+  return `<section class="card applause">
     <span class="eyebrow">Game over</span>
-    <h2 style="font-size:clamp(32px,9vw,48px)">🏆 ${winner} wins</h2>
+    <div class="claps" aria-hidden="true"><span>👏</span><span>🏆</span><span>👏</span></div>
+    <h2 style="font-size:clamp(32px,9vw,48px)">${winner} win${tops.length === 1 ? "s" : ""}!</h2>
+    <p style="font-weight:800">${tops.length ? (iWon ? "Take a bow. Everyone's clapping for you!" : `A big round of applause for ${winner}!`) : "Nobody scored this time."}</p>
+    ${tops.length ? `<button class="btn" data-act="clap">👏 Clap again</button>` : ""}
+  </section>
+  <section class="card" style="align-items:flex-start">
+    <h3>Final scores</h3>
     ${scoreTable(g)}
     ${S.hosting ? `<button class="btn primary wide" data-act="again">Play again</button>` : `<p class="muted">Waiting for the host to start another game.</p>`}
   </section>`;
@@ -602,7 +648,8 @@ function render() {
   $("#barRoom").innerHTML = `<span aria-hidden="true">${r.emoji}</span><span>${esc(r.name)}${g ? " · " + esc(PHASE_LABEL[g.phase] || "") : ""}</span>`;
   const st = $("#stage");
   let html;
-  if (g && r.adult && !S.adult) html = viewAdultGate();
+  if (iAmOverflow()) html = viewFull();
+  else if (g && r.adult && !S.adult) html = viewAdultGate();
   else if (!g) html = viewNoHost();
   else if (g.phase === "lobby") html = viewLobby(g);
   else if (g.phase === "build" && Array.isArray(g.tiles)) html = viewBuild(g);
@@ -612,6 +659,7 @@ function render() {
   else html = viewNoHost();
   if (S.solo) html = `<p class="note">Solo practice: nobody else can join this one, so voting is skipped.</p>` + html;
   st.innerHTML = html;
+  if (g && g.phase === "final") celebrate(g);
   const chip = st.querySelector('.room-scroll [aria-pressed="true"]');
   if (chip) { const sc = chip.parentElement; sc.scrollLeft = chip.offsetLeft - sc.offsetLeft - (sc.clientWidth - chip.offsetWidth) / 2; }
   updateTimer();
@@ -634,6 +682,47 @@ function autoSubmit() {
   }
 }
 
+// ---------- round of applause ----------
+let audio = null;
+function unlockAudio() {
+  try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch {}
+}
+document.addEventListener("pointerdown", unlockAudio, { capture: true });
+// A crowd clapping, made from short bursts of filtered noise (no sound files needed).
+function playApplause(secs = 4.5) {
+  unlockAudio(); if (!audio) return;
+  const ac = audio, t0 = ac.currentTime + 0.05;
+  const len = Math.floor(ac.sampleRate * 0.06);
+  const buf = ac.createBuffer(1, len, ac.sampleRate); const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
+  const out = ac.createGain(); out.gain.setValueAtTime(0.0001, t0); out.gain.linearRampToValueAtTime(0.5, t0 + 0.5);
+  out.gain.setValueAtTime(0.5, t0 + secs - 1.2); out.gain.linearRampToValueAtTime(0.0001, t0 + secs); out.connect(ac.destination);
+  const claps = Math.floor(secs * 28);
+  for (let i = 0; i < claps; i++) {
+    const src = ac.createBufferSource(); src.buffer = buf; src.playbackRate.value = 0.8 + Math.random() * 0.6;
+    const f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 900 + Math.random() * 1800; f.Q.value = 0.8;
+    const gn = ac.createGain(); gn.gain.value = 0.3 + Math.random() * 0.7;
+    src.connect(f); f.connect(gn); gn.connect(out); src.start(t0 + Math.random() * secs);
+  }
+  if (navigator.vibrate) { try { navigator.vibrate([60, 80, 60, 80, 60]); } catch {} }
+}
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const box = document.createElement("div"); box.className = "confetti"; box.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 90; i++) {
+    const c = document.createElement("i"); const [m] = MAGS[rnd(MAGS.length)];
+    c.style.cssText = `left:${rnd(100)}%;background:${m};animation-duration:${2.4 + Math.random() * 2.2}s;animation-delay:${Math.random() * 1.2}s`;
+    box.appendChild(c);
+  }
+  document.body.appendChild(box); setTimeout(() => box.remove(), 6000);
+}
+function celebrate(g) {
+  const key = g.gid + ".final";
+  if (S.clapped === key) return;
+  S.clapped = key;
+  if (topScore(g) > 0) { playApplause(); confetti(); }
+}
+
 // ---------- rooms ----------
 async function enterRoom(code, host) {
   if (!S.me.n) { toast("Pick a nickname first."); $("#nameInput").focus(); return; }
@@ -647,6 +736,11 @@ async function enterRoom(code, host) {
   }
   if (!r) { r = makeSoloRoom(); S.solo = true; host = true; }
   else S.solo = false;
+  if (!S.solo && !host && r.ready) {
+    await r.ready();
+    const here = r.peers().filter(p => p.presence && typeof p.presence.n === "string" && p.presence.n).length;
+    if (here >= MAX_PLAYERS) { r.leave().catch(() => {}); toast(`That game is full (${MAX_PLAYERS} players max).`); return; }
+  }
   S.room = r; S.code = code; S.hosting = !!host; S.mine = {}; S.draft = { key: null, words: [], caret: 0 }; S.lastG = null; S.myPeer = S.solo ? "solo" : null;
   S.unsub = r.onPeers(ch => {
     S.peers = ch.peers;
@@ -655,7 +749,8 @@ async function enterRoom(code, host) {
   });
   S.peers = r.peers();
   if (host) S.hostG = newLobbyG(S.pick);
-  await r.presence({ n: S.me.n, c: S.me.c, host: host ? true : null, g: host ? S.hostG : null }).catch(() => {});
+  S.joinedAt = now();
+  await r.presence({ n: S.me.n, c: S.me.c, j: S.joinedAt, host: host ? true : null, g: host ? S.hostG : null }).catch(() => {});
   $("#home").hidden = true; $("#game").hidden = false;
   window.scrollTo(0, 0);
   schedule();
@@ -685,7 +780,8 @@ const actions = {
     setMine({ a: null }); },
   vote(b) { const g = currentG(); if (!g || g.phase !== "vote" || b.dataset.p === S.myPeer) return; setMine({ v: { k: keyOf(g), p: b.dataset.p } }); },
   start() { if (S.hosting) startGame(); },
-  rounds(b) { if (!S.hosting) return; S.settings.rounds = +b.dataset.v; setG({ ...S.hostG, rounds: S.settings.rounds }); },
+  cheeky(b) { if (!S.hosting) return; S.settings.cheeky = b.dataset.v === "1"; store.set("pb.cheeky", S.settings.cheeky ? "1" : "0"); setG({ ...S.hostG, cheeky: S.settings.cheeky }); },
+  clap() { const g = currentG(); if (g) { playApplause(); confetti(); } },
   dur(b) { if (!S.hosting) return; S.settings.dur = +b.dataset.v; setG({ ...S.hostG, dur: S.settings.dur }); },
   theme(b) {
     if (!S.hosting) return;
@@ -824,7 +920,8 @@ function renderHome() {
       ? (games.length ? `<div class="games">${games.map(p => {
           const ph = PHASE_LABEL[p.presence.ph] || "Lobby";
           const np = Math.max(0, +p.presence.np || 0);
-          return `<button class="game-row" data-act="joinOpen" data-code="${esc(p.presence.hosting)}"><span><b>${esc(p.presence.hosting)}</b><br><span class="muted small">Hosted by ${esc(clean(p.presence.n, 20) || "Someone")} · ${np} playing · ${esc(ph)}</span></span><span class="btn">Join</span></button>`;
+          if (np >= MAX_PLAYERS) return `<div class="game-row is-full"><span><b>${esc(p.presence.hosting)}</b><br><span class="muted small">Hosted by ${esc(clean(p.presence.n, 20) || "Someone")} · ${np}/${MAX_PLAYERS} playing</span></span><span class="badge">Full</span></div>`;
+          return `<button class="game-row" data-act="joinOpen" data-code="${esc(p.presence.hosting)}"><span><b>${esc(p.presence.hosting)}</b><br><span class="muted small">Hosted by ${esc(clean(p.presence.n, 20) || "Someone")} · ${np}/${MAX_PLAYERS} playing · ${esc(ph)}</span></span><span class="btn">Join</span></button>`;
         }).join("")}</div>` : `<p class="muted small">No ${esc(r.name)} games running right now. Start one and your friends will see it here.</p>`)
       : "";
     body = `${list}<button class="btn primary wide" data-act="hostHere">${S.live ? `Start a ${esc(r.name)} game` : `Practise solo in ${esc(r.name)}`}</button>`;

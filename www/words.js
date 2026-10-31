@@ -6,6 +6,17 @@
 const w = s => s.trim().split(/\s+/);
 const uniq = a => [...new Set(a)];
 
+// Punctuation magnets. Dealt every round in every room.
+export const PUNCT = ["?", "!", "'", ",", ".", "#", "@", "-", "&"];
+export const isPunct = x => PUNCT.includes(String(x));
+
+// Cheeky words: rude-ish but nothing too vulgar. Never dealt in Just for Kids,
+// and the host can switch them off in the lobby.
+export const CHEEKY = uniq(w(`
+piss pee wee turd poo poop ass arse dick tits boobs bloody willy shit slut fart crap bum bumhole bugger bollocks knob prat
+plonker pillock wally git minger sod nipple bottom burp snot bogey wazzock jugs floozy
+`));
+
 export const GLUE = ["I", "you", "my", "the", "a", "is", "and", "of", "to", "in", "not", "me", "it", "your", "-s", "-ing", "-ed", "-ly"];
 
 export const NOUNS = uniq(w(`
@@ -338,7 +349,7 @@ const KID_WILD = w(`very again forever tonight never always only almost nobody e
   can't must too suddenly quietly loudly secretly really so but or then with for on up down`);
 
 // Deal one round's magnets for a room. Everyone in the room gets the same deal.
-export function deal(roomId, rnd) {
+export function deal(roomId, rnd, opts = {}) {
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const take = (a, n, used) => {
     const out = [];
@@ -346,7 +357,9 @@ export function deal(roomId, rnd) {
     return out;
   };
   const room = roomOf(roomId);
-  const used = new Set(GLUE.map(x => x.toLowerCase()));
+  const used = new Set([...GLUE, ...PUNCT].map(x => x.toLowerCase()));
+  const cheekyOn = !room.kids && opts.cheeky !== false;
+  const cheeky = cheekyOn ? take(CHEEKY, room.adult ? 8 : 5, used) : [];
   let words;
   if (room.kids) {
     words = [...GLUE, ...take(room.words, 34, used), ...take(KID_WILD, 10, used)];
@@ -355,10 +368,11 @@ export function deal(roomId, rnd) {
   } else {
     words = [...GLUE, ...take(room.words, 16, used), ...take(ALL_GENERAL.nouns, 8, used), ...take(ALL_GENERAL.verbs, 7, used), ...take(ALL_GENERAL.adjs, 6, used), ...take(WILD, 8, used)];
   }
-  return shuffle(words);
+  // Punctuation goes at the end of the tray so it's always easy to find.
+  return [...shuffle([...words, ...cheeky]), ...PUNCT];
 }
 
-export const BANK_SIZE = uniq([...GLUE, ...NOUNS, ...VERBS, ...ADJS, ...WILD, ...KID_WILD, ...ROOMS.flatMap(r => r.words)]).length;
+export const BANK_SIZE = uniq([...GLUE, ...PUNCT, ...CHEEKY, ...NOUNS, ...VERBS, ...ADJS, ...WILD, ...KID_WILD, ...ROOMS.flatMap(r => r.words)]).length;
 
 // Multi-word magnets are stored with hyphens ("ice-cream") and shown with
 // spaces ("ice cream"), except words that really are hyphenated.

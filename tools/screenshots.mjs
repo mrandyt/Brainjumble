@@ -103,7 +103,7 @@ for (const [id, f] of Object.entries(FORCE)) { const r = ROOMS.find(x => x.id ==
 export function deal(id, rnd) {
   const d = _deal(id, rnd); const f = FORCE[id]; if (!f) return d;
   const missing = f.words.filter(w => !d.includes(w));
-  const slots = d.map((x, i) => i).filter(i => !GLUE.includes(d[i]) && !f.words.includes(d[i]));
+  const slots = d.map((x, i) => i).filter(i => !GLUE.includes(d[i]) && !PUNCT.includes(d[i]) && !f.words.includes(d[i]));
   missing.forEach((w, j) => { d[slots[(j * 7 + 3) % slots.length]] = w; });
   return d;
 }
@@ -168,7 +168,7 @@ const browser = await chromium.launch();
   // 4: building an answer
   await page.click('[data-act="start"]');
   await sleep(900);
-  await placeWords(page, ["your", "planet", "smell", "-s", "of", "soggy", "toast"]);
+  await placeWords(page, ["your", "planet", "smell", "-s", "of", "soggy", "toast", "!"]);
   await sleep(400);
   await page.evaluate(() => window.scrollTo(0, 0));
   await sleep(200);
@@ -214,6 +214,31 @@ const browser = await chromium.launch();
   await page.evaluate(() => document.querySelector("#roomPanel").scrollIntoView({ block: "center" }));
   await sleep(300);
   await shot(page, "08-after-dark");
+  await ctx.close();
+}
+
+// 9: first to 10 points, and a round of applause for the winner
+{
+  const { ctx, page } = await phone(browser, "light");
+  await page.click('[data-room="space"]');
+  await page.click('[data-act="hostHere"]');
+  await sleep(700);
+  await page.click('[data-act="start"]');
+  for (let round = 0; round < 8; round++) {
+    await page.waitForSelector('.tray [data-act="place"], .applause', { timeout: 40000 });
+    if (await page.$(".applause")) break;
+    await placeWords(page, round % 2 ? ["*", "?"] : ["*", "*", "!"]);
+    await page.click('[data-act="submit"]');
+    await page.waitForSelector('.strip[data-act="vote"]', { timeout: 15000 });
+    await sleep(300);
+    await page.click('.strip[data-act="vote"]:not([disabled]) >> nth=0');
+    await page.waitForSelector('.tray [data-act="place"], .applause', { state: "detached", timeout: 1000 }).catch(() => {});
+    await page.waitForFunction(() => !document.querySelector('.strip[data-act="vote"]'), null, { timeout: 70000 });
+  }
+  await page.waitForSelector(".applause", { timeout: 40000 });
+  await sleep(1300);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot(page, "09-winner");
   await ctx.close();
 }
 

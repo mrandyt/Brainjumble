@@ -90,9 +90,12 @@ function makeRoom(db, uid, code) {
       return { peer: id, by: id, isMe: id === uid, sameTab: id === uid, kind: "viewer", guest: false, presence, updatedAt: Date.now() };
     });
   };
+  let markReady; const readyP = new Promise(r => { markReady = r; });
+  setTimeout(() => markReady(), 4000);
   const stop = onValue(ref(db, base), s => {
     data = s.val() || {};
     build();
+    markReady();
     handlers.forEach(h => h({ peers: snap }));
   });
   onDisconnect(meRef).remove();
@@ -115,6 +118,7 @@ function makeRoom(db, uid, code) {
       if (g) await set(gameRef, plain(g));
     },
     peers() { return snap; },
+    ready() { return readyP; },
     onPeers(h) { handlers.add(h); queueMicrotask(() => h({ peers: snap })); return () => handlers.delete(h); },
     connected() { return true; },
     async leave() {

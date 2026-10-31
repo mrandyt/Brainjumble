@@ -10,6 +10,20 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
+## What's new in 1.1
+
+- **Punctuation magnets:** `?` `!` `'` `,` `.` `#` `@` `-` `&` in every round.
+- **Cheeky words:** mildly rude words like *pee*, *poo*, *bum*, *willy* and *bloody* (nothing too vulgar). Never in Just for Kids, and the host can switch them off.
+- **Up to 10 players** per game.
+- **First to 10 points wins.**
+- **A round of applause** (with confetti) for the winner.
+
+<p align="center">
+  <img src="docs/screenshots/09-winner.png" width="250" alt="Final screen: the winner gets a round of applause with clapping hands and confetti">
+</p>
+
+Full notes for each version are on the [Releases](../../releases/latest) page.
+
 ## Download and install
 
 1. On your Android phone, open this repo's **[Releases](../../releases/latest)** page and tap **Brain Jumble (latest build)**.
@@ -23,7 +37,9 @@ New versions install straight over the old one, so updating is the same three st
 1. **Pick a room and start a game.** You get a four-letter room code. Friends type the code, or just tap your game in the same room on their home screen.
 2. **Build your answer.** Everyone sees the same question and the same ~60 magnets. Tap magnets to stick them on your fridge.
 3. **Vote.** All the answers appear without names. Tap your favourite. You can't vote for your own.
-4. **See who wrote what.** Names are revealed with the votes, and the next round starts automatically. After the last round, the top scorer wins.
+4. **See who wrote what.** Names are revealed with the votes, and the next round starts automatically. The first player to reach **10 points** wins, and everyone gives them a round of applause.
+
+Up to **10 players** can play in one game.
 
 | Pick a room | Wait in the lobby | Vote for the best |
 | :---: | :---: | :---: |
@@ -36,19 +52,21 @@ New versions install straight over the old one, so updating is the same three st
 - **Double-tap** a placed magnet, or drag it off the fridge, to put it back.
 - **Tap a gap** between magnets to choose where the next word goes.
 - The small round magnets (**-s**, **-ing**, **-ed**, **-ly**) stick onto the end of the word before them, so *dance* + *-ing* reads as "dancing".
+- The dark round magnets are **punctuation**. `?` `!` `,` `.` stick to the word before, `'` and `-` join the words either side (*dog* + *'* + *s* reads "dog's"), and `#` `@` stick to the word after.
 - Changed your mind after sending? Tap **Edit answer** any time before the timer runs out.
 
 ### Scoring
 
 | | Points |
 | --- | ---: |
-| Each vote your answer gets | 10 |
-| Bonus for the round's top answer (ties share it) | 20 |
-| Voting for the round's top answer | 5 |
+| Each vote your answer gets | 1 |
+| First to 10 points | Wins the game 🏆👏 |
+
+If two players pass 10 in the same round, the higher score wins. A tie shares the win.
 
 ### Host settings
 
-Whoever starts the game is the host. Before starting, they can change the room, the number of rounds (4, 6, 8 or 10) and the building time (45, 75 or 120 seconds). If the host leaves, anyone else in the room can tap **Host this room** to carry on.
+Whoever starts the game is the host. Before starting, they can change the room, the building time (45, 75 or 120 seconds) and switch cheeky words on or off. If the host leaves, anyone else in the room can tap **Host this room** to carry on.
 
 ## Themed rooms
 
@@ -81,6 +99,7 @@ Everything lives in [`www/words.js`](www/words.js):
 
 - Each room in `ROOMS` has a `prompts` list (the questions) and a `words` list (that room's extra magnets).
 - The general bank shared by most rooms is in `NOUNS`, `VERBS`, `ADJS` and `WILD`.
+- The mildly rude words are in `CHEEKY`, and the punctuation magnets in `PUNCT`.
 - For a magnet with more than one word, join the words with hyphens, like `ice-cream`. It shows on the magnet as "ice cream".
 
 Edit the file on GitHub and commit. A new APK is built automatically within a few minutes, and the screenshots on this page refresh themselves too.
@@ -92,7 +111,7 @@ Edit the file on GitHub and commit. A new APK is built automatically within a fe
   - `www/words.js` holds the rooms, questions and word bank.
   - `www/net.js` connects players through Firebase.
 - **Multiplayer** runs on Firebase Realtime Database, on the free plan. The host's phone runs the game and everyone else's phone follows along. Each player only writes their own answer and vote.
-- **The Android app** is built by GitHub Actions (`.github/workflows/build.yml`). On every push to `main`, it wraps `www/` with Capacitor, builds the APK, and publishes it as the `latest` release.
+- **The Android app** is built by GitHub Actions (`.github/workflows/build.yml`). On every push to `main`, it wraps `www/` with Capacitor, builds the APK, and publishes it as the `latest` release, using `RELEASE_NOTES.md` as the release description.
 - **The screenshots** are taken by `.github/workflows/screenshots.yml`, which plays a quick game in a phone-sized browser with three pretend friends.
 - `signing/debug.keystore` keeps the signing key the same between builds, so updates install cleanly. It's a standard debug key, not a secret.
 
