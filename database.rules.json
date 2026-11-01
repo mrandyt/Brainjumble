@@ -19,9 +19,31 @@
     },
     "lobby": {
       ".read": "auth != null",
-      ".indexOn": ["at"],
+      ".indexOn": [
+        "at"
+      ],
       "$code": {
         ".write": "auth != null && $code.matches(/^[A-Z]{4}$/) && (!data.exists() || data.child('uid').val() === auth.uid || root.child('rooms').child($code).child('host').val() === auth.uid)"
+      }
+    },
+    "leaderboard": {
+      ".read": "auth != null",
+      "$week": {
+        ".indexOn": [
+          "s"
+        ],
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && $week.matches(/^20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/)",
+          ".validate": "newData.hasChildren(['n','s']) && newData.child('n').isString() && newData.child('n').val().length <= 20 && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= (data.exists() ? data.child('s').val() : 0) + 15",
+          "n": {},
+          "c": {
+            ".validate": "newData.isNumber()"
+          },
+          "s": {},
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     }
   }

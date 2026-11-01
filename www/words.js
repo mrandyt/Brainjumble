@@ -19,7 +19,7 @@ piss pee wee turd poo poop ass arse dick tits boobs bloody willy shit slut fart 
 plonker pillock wally git minger sod nipple bottom burp snot bogey wazzock jugs floozy
 `));
 
-export const GLUE = ["I", "you", "my", "the", "a", "is", "and", "of", "to", "in", "not", "me", "it", "your", "-s", "-ing", "-ed", "-ly"];
+export const GLUE = ["I", "you", "my", "the", "a", "is", "and", "of", "to", "in", "not", "me", "it", "your", "on", "under", "-s", "-ing", "-ed", "-ly"];
 
 // Connectives and little function words (joiners, pronouns, "to be / to have"
 // verbs). A spread of these is dealt every round, in every room, so there's
@@ -424,3 +424,34 @@ export const label = word => {
   if (s.startsWith("-") || KEEP_HYPHEN.has(s.toLowerCase())) return s;
   return s.replace(/(?<=\S)-(?=\S)/g, " ");
 };
+
+// ---------- AI players ----------
+// Builds a silly little sentence out of one round's magnets for a computer player.
+// Returns the magnets in order, ready to send like a human's answer.
+export function botAnswer(tiles, rnd) {
+  const pick = a => a[rnd(a.length)];
+  const suffix = t => /^-(s|ing|ed|ly)$/.test(t);
+  const plain = tiles.filter(t => !isPunct(t) && !suffix(t));
+  const glue = plain.filter(t => GLUE.includes(t));
+  const joiners = plain.filter(t => CONNECT.includes(t) && !GLUE.includes(t));
+  const starters = glue.filter(t => ["I", "you", "my", "the", "a", "your"].includes(t));
+  const rest = plain.filter(t => !GLUE.includes(t) && !CONNECT.includes(t));
+  if (!rest.length) return plain.slice(0, 3);
+  const used = new Set(); const out = [];
+  const add = t => { if (t && !used.has(t)) { used.add(t); out.push(t); return true; } return false; };
+  const length = 4 + rnd(5);
+  add(starters.length ? pick(starters) : pick(glue.length ? glue : plain));
+  let guard = 0;
+  while (out.length < length && guard++ < 40) {
+    const roll = rnd(10);
+    if (roll < 5) add(pick(rest));
+    else if (roll < 7 && joiners.length) add(pick(joiners));
+    else if (roll < 9) add(pick(glue.filter(t => !["-s", "-ing", "-ed", "-ly"].includes(t)) || plain));
+    else add(pick(rest));
+  }
+  // Never finish on a joining word, and sometimes finish with punctuation if there is one.
+  while (out.length > 2 && (GLUE.includes(out[out.length - 1]) || CONNECT.includes(out[out.length - 1])) && !rest.includes(out[out.length - 1])) out.pop();
+  const ends = tiles.filter(t => t === "!" || t === "?" || t === ".");
+  if (ends.length && rnd(2)) out.push(pick(ends));
+  return out;
+}

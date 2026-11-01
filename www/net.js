@@ -26,7 +26,53 @@ export async function connect(cfg) {
   let offset = 0;
   onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
 
-  return { uid, offset: () => offset, lobby: makeLobby(db, uid) };
+  return { uid, offset: () => offset, lobby: makeLobby(db, uid), lb: makeBoard(db, uid, () => Date.now() + offset) };
+}
+
+// ---------- weekly scoreboard ----------
+// leaderboard/<week>/<uid> = { n: name, c: colour, s: points this week }
+// The week starts every Monday at 00:00 UTC; each week is its own node, so the board
+// "resets" simply by starting a fresh one (old weeks are never read).
+export const weekKey = ms => {
+  const d = new Date(ms);
+  const sinceMonday = (d.getUTCDay() + 6) % 7;
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - sinceMonday);
+  return d.toISOString().slice(0, 10);
+};
+
+function makeBoard(db, uid, now) {
+  let key = weekKey(now()), rows = [], stop = null;
+  const handlers = new Set();
+  const emit = () => handlers.forEach(h => h({ week: key, rows }));
+  const watch = () => {
+    if (stop) stop();
+    key = weekKey(now()); rows = [];
+    stop = onValue(query(ref(db, "leaderboard/" + key), orderByChild("s"), limitToLast(10)), s => {
+      const v = s.val() || {};
+      rows = Object.entries(v)
+        .filter(([, x]) => x && typeof x.s === "number" && x.s > 0)
+        .map(([id, x]) => ({ uid: id, n: String(x.n || "").slice(0, 20), c: +x.c || 0, s: x.s }))
+        .sort((a, b) => b.s - a.s || (a.uid < b.uid ? -1 : 1));
+      emit();
+    });
+  };
+  watch();
+  // Sunday night to Monday morning: start the new week's board.
+  setInterval(() => { if (weekKey(now()) !== key) { watch(); emit(); } }, 30000);
+  return {
+    week: () => key,
+    rows: () => rows,
+    onChange(h) { handlers.add(h); queueMicrotask(() => h({ week: key, rows })); return () => handlers.delete(h); },
+    // Add points to this phone's own entry for the current week.
+    add(n, c, pts) {
+      pts = Math.max(0, Math.min(15, Math.floor(+pts || 0)));
+      if (!pts) return Promise.resolve();
+      return runTransaction(ref(db, "leaderboard/" + weekKey(now()) + "/" + uid), cur => ({
+        n: String(n || "").slice(0, 20), c: Math.max(0, Math.floor(+c || 0)), s: ((cur && +cur.s) || 0) + pts
+      })).catch(() => {});
+    }
+  };
 }
 
 function makeLobby(db, uid) {

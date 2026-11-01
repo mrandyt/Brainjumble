@@ -10,9 +10,17 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
-## What's new in 1.3
+## What's new in 1.4
 
-> **Update needed:** 1.3 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+> **Update needed:** 1.4 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+
+- **AI players.** With fewer than 6 people in a game, 🤖 computer players fill the empty seats. They build answers, vote and score. The host can switch them off in the lobby.
+- **10 seconds more to vote** (30 seconds plus 5 per answer, up to 70).
+- **New words:** *on* and *under* are always dealt.
+- **Weekly scoreboard** on the home screen, starting again every Monday (UTC). Votes won in games with 2 or more real players count; AI players don't.
+- **Halo** round the names of the week's top three players, wherever their name appears.
+
+### Earlier: 1.3
 
 - **More joining words, commands and verbs.** Every round deals a spread of connectives (*but*, *because*, *with*, *if*), imperatives (*stop*, *give*, *look*, *shut up*) and plenty more verbs, so you can build proper sentences.
 - **15 second "get ready" pause** when starting a game, joining a game and finishing a game, so every phone can catch up first. The host's Play again button unlocks 15 seconds after the winner is shown.
@@ -59,7 +67,7 @@ From version 1.2, new versions install straight over the old one, so updating is
 3. **Vote.** All the answers appear without names. Tap your favourite. You can't vote for your own.
 4. **See who wrote what.** Names are revealed with the votes, and the next round starts automatically. The first player to reach **10 points** wins, and everyone gives them a round of applause. The final round's results stay up for at least 15 seconds before the winner screen, and the host's **Play again** button unlocks 15 seconds after the winner is shown.
 
-Up to **10 players** can play in one game.
+Up to **10 players** can play in one game. With fewer than 6, AI players 🤖 fill the room up to 6 (the host can turn them off).
 
 | Pick a room | Wait in the lobby | Vote for the best |
 | :---: | :---: | :---: |
@@ -86,7 +94,7 @@ If two players pass 10 in the same round, the higher score wins. **There are no 
 
 ### Host settings
 
-Whoever starts the game is the host. Before starting, they can change the room, the building time (45, 75 or 120 seconds) and switch cheeky words on or off. If the host leaves, anyone else in the room can tap **Host this room** to carry on.
+Whoever starts the game is the host. Before starting, they can change the room, the building time (45, 75 or 120 seconds), and switch cheeky words and AI players on or off. If the host leaves, anyone else in the room can tap **Host this room** to carry on.
 
 ## Themed rooms
 
@@ -144,7 +152,7 @@ Edit the file on GitHub and commit. A new APK is built automatically within a fe
 ### Firebase setup (one time)
 
 1. In the Firebase console, enable **Authentication → Anonymous**.
-2. Create a **Realtime Database**, then paste the contents of `database.rules.json` into its **Rules** tab and **Publish**.
+2. Create a **Realtime Database**, then paste the contents of `database.rules.json` into its **Rules** tab and **Publish**. Do this again whenever the file changes (1.4 adds the weekly scoreboard rules).
 3. Put your web app config into `www/firebase-config.js`.
 
 Without a Firebase config the app still runs, but only in solo practice mode.

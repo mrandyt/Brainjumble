@@ -157,6 +157,15 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .pchip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:14px;font-weight:700}
 .pchip i{width:12px;height:12px;border-radius:50%;background:var(--c);display:inline-block;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
 .pchip.done{border-color:var(--good)}
+/* Weekly scoreboard: a halo round the names of this week's top three */
+.halo{position:relative;display:inline-block;padding:0 .45em;margin:0 .05em;border-radius:999px;--h:#E2A400;box-shadow:0 0 0 2px var(--h),0 0 9px 2px var(--h)}
+.halo::before{content:"";position:absolute;left:50%;top:-7px;width:1.5em;height:.5em;transform:translateX(-50%);border:2px solid var(--h);border-radius:50%;box-shadow:0 0 5px var(--h);pointer-events:none}
+.halo.h2{--h:#8B94A5}.halo.h3{--h:#C0763A}
+.board-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.board-list li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;background:var(--chip);border:1px solid var(--line);font-weight:700}
+.board-list li.me{border-color:var(--good)}
+.board-list .pos{width:1.6em;text-align:center}.board-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.board-list .pts{font-weight:800;font-variant-numeric:tabular-nums}
+.board-list i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
 .pchip .ok{color:var(--good);font-weight:800}
 .strips{display:flex;flex-direction:column;gap:14px}
 .strip{display:flex;flex-direction:column;gap:10px;align-items:flex-start;text-align:left;padding:16px;border-radius:20px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:2px solid var(--panel-line);width:100%;box-shadow:var(--shadow)}
@@ -217,7 +226,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 .bg-main,.bg-tray,.bg-chips{display:flex;flex-direction:column;gap:18px;min-width:0}
 .cols > *{min-width:0}
 .home-cols,.home-left,.home-right{display:contents}
-#profileCard{order:1}#roomsCard{order:2}#roomPanel{order:3}#joinCard{order:4}#howCard{order:5}
+#profileCard{order:1}#roomsCard{order:2}#roomPanel{order:3}#joinCard{order:4}#boardCard{order:5}#howCard{order:6}
 @media (min-width:600px){
   :root{--wrap-max:920px}
   .strips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:stretch}
@@ -272,6 +281,8 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
         </div>
       </section>
 
+      <section class="card" id="boardCard" hidden></section>
+
       <section class="card" id="howCard">
         <details class="how">
           <summary>How to play</summary>
@@ -281,7 +292,8 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
             <li>Answers are shown anonymously. Vote for your favourite, but not your own.</li>
             <li>Every vote your answer gets is 1 point. First to 10 points wins and gets a round of applause. There are no draws: if players are level at the top, the game plays on until one of them is ahead.</li>
             <li>Black round magnets are punctuation (<b>? ! ' , . # @ - &amp;</b>). Up to 10 players per game.</li>
-            <li>Starting or joining a game has a 15 second "get ready" pause, so everyone's phone can catch up.</li>
+            <li>Fewer than 6 players? 🤖 AI players fill the empty seats (the host can switch them off). Votes you win in games with friends count towards the weekly scoreboard, and the top three names wear a halo until Monday.</li>
+                        <li>Starting or joining a game has a 15 second "get ready" pause, so everyone's phone can catch up.</li>
           </ol>
         </details>
       </section>
@@ -312,7 +324,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 
 <script type="module">
 import { connect } from "./net.js";
-import { ROOMS, roomOf, deal, GLUE, CONNECT, label, isPunct } from "./words.js";
+import { ROOMS, roomOf, deal, GLUE, CONNECT, label, isPunct, botAnswer } from "./words.js";
 import { APP_VERSION } from "./version.js";
 import { checkForUpdate } from "./update.js";
 (() => {
@@ -414,7 +426,7 @@ const S = {
   peers: [], myPeer: null, mine: {},
   draft: { key: null, words: [], caret: 0 },
   hosting: false, hostG: null, lastG: null, adSig: null, autoKey: null,
-  settings: { dur: 75, cheeky: store.get("pb.cheeky") !== "0" }, usedPrompts: {}, joinedAt: 0
+  settings: { dur: 75, cheeky: store.get("pb.cheeky") !== "0", ai: store.get("pb.ai") !== "0" }, usedPrompts: {}, joinedAt: 0
 };
 if (roomOf(S.pick).adult && !S.adult) S.pick = "classic";
 
@@ -436,6 +448,38 @@ const leadersOf = scores => {
 };
 const gameWon = g => { const { best, tops } = leadersOf(g.scores); return best >= (g.target || WIN_POINTS) && tops.length === 1; };
 const tiedAtTop = g => { const { best, tops } = leadersOf(g.scores); return best >= (g.target || WIN_POINTS) && tops.length > 1; };
+// ---------- weekly scoreboard ----------
+// Votes won in games with two or more real players count towards this week's board, which
+// starts again every Monday. The top three names get a halo wherever they appear.
+S.board = { week: "", rows: [] }; S.rank = {};
+const nameHtml = (peer, text) => { const r = S.rank[peer]; return r ? `<span class="halo h${r}" title="Top ${r} this week">${esc(text)}</span>` : esc(text); };
+function setBoard(b) {
+  S.board = b; S.rank = {};
+  b.rows.slice(0, 3).forEach((r, i) => { S.rank[r.uid] = i + 1; });
+  renderBoard();
+  if (S.room) schedule();
+}
+const daysToReset = () => { const d = new Date(now()); const since = (d.getUTCDay() + 6) % 7; return 7 - since; };
+function renderBoard() {
+  const el = $("#boardCard"); if (!el) return;
+  if (!S.live || !NET || !NET.lb) { el.hidden = true; return; }
+  el.hidden = false;
+  const rows = S.board.rows.slice(0, 5); const medal = ["🥇", "🥈", "🥉"];
+  const mine = NET.uid; const myRank = S.board.rows.findIndex(r => r.uid === mine);
+  const d = daysToReset();
+  el.innerHTML = `<div class="card-head"><h3>🏆 This week's top players</h3><span class="muted small">Resets in ${d} day${d === 1 ? "" : "s"}</span></div>
+    ${rows.length ? `<ol class="board-list">${rows.map((r, i) => `<li class="${r.uid === mine ? "me" : ""}"><span class="pos">${medal[i] || i + 1}</span><i style="--c:${COLORS[r.c % COLORS.length]}"></i><span class="nm">${nameHtml(r.uid, r.n || "Someone")}${r.uid === mine ? " (you)" : ""}</span><span class="pts">${r.s}</span></li>`).join("")}</ol>`
+      : `<p class="muted small">Nobody's on the board yet. Every vote your answer wins in a game with friends counts. The top three get a halo round their name all week.</p>`}
+    <p class="muted small">${S.rank[mine] ? "You're wearing the halo! Keep your spot until Monday." : myRank > 2 ? `You're #${myRank + 1} this week. Top three get a halo.` : "Votes in games with 2 or more real players count. AI players don't."}</p>`;
+}
+function recordWeekly(g) {
+  if (!NET || !NET.lb || S.solo || !g || g.phase !== "reveal" || !g.res) return;
+  const key = keyOf(g); if (S.lbKey === key) return;
+  S.lbKey = key;
+  if (players().length < 2) return;
+  const r = g.res[S.myPeer];
+  if (r && r.pts) NET.lb.add(S.me.n, S.me.c, r.pts);
+}
 const nameOf = p => clean(p.presence.n, 20) || "Someone";
 const colorOf = p => COLORS[(+p.presence.c || 0) % COLORS.length];
 const keyOf = g => g.gid + "." + g.round;
@@ -454,7 +498,7 @@ function currentG() {
 
 // ---------- host engine ----------
 function newLobbyG(theme, keepScores) {
-  return { gid: uid(), phase: "lobby", theme: roomOf(theme).id, round: 0, target: WIN_POINTS, dur: S.settings.dur, cheeky: S.settings.cheeky, scores: keepScores || {}, names: {} };
+  return { gid: uid(), phase: "lobby", theme: roomOf(theme).id, round: 0, target: WIN_POINTS, dur: S.settings.dur, cheeky: S.settings.cheeky, ai: S.settings.ai, scores: keepScores || {}, names: {} };
 }
 function setG(g) {
   S.hostG = g;
@@ -501,31 +545,53 @@ function nextPrompt(theme) {
   if (!best.length) { used.length = 0; best = list.slice(); }
   const p = best[rnd(best.length)]; used.push(p); markSeen(p); return p;
 }
+// ---------- AI players ----------
+// When fewer than 6 people are in a game, computer players (marked 🤖) fill the empty
+// seats. They live only in the game state the host publishes: they build an answer from
+// the same magnets, vote like anyone else, and score points. Humans always come first, and
+// the host can switch them off in the lobby. They never take part in solo practice.
+const FILL_TO = 6;
+const BOT_POOL = [{ n: "🤖 Rita", c: 7 }, { n: "🤖 Beep", c: 5 }, { n: "🤖 Sparky", c: 2 }, { n: "🤖 Gizmo", c: 3 }, { n: "🤖 Chip", c: 8 }];
+function botsNeeded(g) {
+  if (S.solo || g.ai === false) return [];
+  return BOT_POOL.slice(0, Math.max(0, FILL_TO - players().length)).map((b, i) => ({ id: "bot" + i, n: b.n, c: b.c }));
+}
+// Re-fill the seats for a new round; a bot that has left takes its points with it.
+function withBots(g) {
+  const bots = botsNeeded(g); const keep = new Set(bots.map(b => b.id));
+  const scores = { ...g.scores };
+  (g.bots || []).forEach(b => { if (!keep.has(b.id)) delete scores[b.id]; });
+  return { ...g, bots, scores };
+}
 function startGame() {
-  const g = { ...newLobbyG(S.hostG.theme), dur: S.settings.dur, cheeky: S.settings.cheeky };
+  const g = { ...newLobbyG(S.hostG.theme), dur: S.settings.dur, cheeky: S.settings.cheeky, ai: S.settings.ai };
   S.hostG = g;
   // 15 seconds of "Get ready!" first, so every phone has synced and anyone still joining gets in.
   // (Solo practice has nobody to wait for, so it starts straight away.)
   if (S.solo) { startRound(); return; }
-  setG({ ...g, phase: "ready", endsAt: now() + DELAY_MS });
+  setG({ ...withBots(g), phase: "ready", endsAt: now() + DELAY_MS });
 }
 function startRound() {
-  const g = S.hostG; const t = themeOf(g);
+  const g = withBots(S.hostG); const t = themeOf(g);
   setG({ ...g, phase: "build", round: g.round + 1, prompt: nextPrompt(t), tiles: deal(t, rnd, { cheeky: g.cheeky !== false }), endsAt: now() + g.dur * 1000, ans: null, res: null });
 }
 function snapshotNames(g) {
   const names = { ...g.names };
   players().forEach(p => { names[p.peer] = nameOf(p); });
+  (g.bots || []).forEach(b => { names[b.id] = b.n; });
   return names;
 }
 function toVote() {
   const g = S.hostG; const key = keyOf(g);
-  const ans = shuffle(players()
+  const human = players()
     .filter(p => p.presence.a && p.presence.a.k === key && clean(p.presence.a.t, 200))
-    .map(p => ({ p: p.peer, t: clean(p.presence.a.t, 200), w: Array.isArray(p.presence.a.w) ? p.presence.a.w.slice(0, 40).map(x => clean(x, 40)) : null })));
+    .map(p => ({ p: p.peer, t: clean(p.presence.a.t, 200), w: Array.isArray(p.presence.a.w) ? p.presence.a.w.slice(0, 40).map(x => clean(x, 40)) : null }));
+  // The computer players only join in if at least one person sent an answer.
+  const robots = human.length ? (g.bots || []).map(b => { const w = botAnswer(g.tiles, rnd); return { p: b.id, t: clean(compose(w), 200), w }; }) : [];
+  const ans = shuffle([...human, ...robots]);
   const names = snapshotNames(g);
   if (ans.length < 2) { S.hostG = { ...g, ans, names }; toReveal(); return; }
-  setG({ ...g, phase: "vote", ans, names, endsAt: now() + Math.min(60, 20 + ans.length * 5) * 1000 });
+  setG({ ...g, phase: "vote", ans, names, endsAt: now() + Math.min(70, 30 + ans.length * 5) * 1000 });
 }
 function toReveal() {
   const g = S.hostG; const key = keyOf(g); const ans = g.ans || [];
@@ -534,6 +600,11 @@ function toReveal() {
   players().forEach(p => {
     const v = p.presence.v;
     if (v && v.k === key && Object.prototype.hasOwnProperty.call(tally, v.p) && v.p !== p.peer) { tally[v.p]++; ballots.push([p.peer, v.p]); }
+  });
+  // Computer players vote too, for any answer but their own.
+  (g.bots || []).forEach(b => {
+    const others = ans.filter(a => a.p !== b.id);
+    if (others.length) { const pick = others[rnd(others.length)].p; tally[pick]++; ballots.push([b.id, pick]); }
   });
   const max = Math.max(0, ...Object.values(tally));
   const res = {};
@@ -619,19 +690,20 @@ function schedule() { if (pending) return; pending = true; requestAnimationFrame
 
 function playerChips(g, mode) {
   const key = g ? keyOf(g) : "";
+  const robots = ((g && g.bots) || []).map(b => `<span class="pchip bot${mode ? " done" : ""}" style="--c:${COLORS[b.c % COLORS.length]}"><i></i>${esc(b.n)}${mode ? '<span class="ok" aria-label="done">✓</span>' : ""}</span>`).join("");
   return `<div class="players">${players().map(p => {
     let done = false;
     if (mode === "build") done = !!(p.presence.a && p.presence.a.k === key);
     if (mode === "vote") done = !!(p.presence.v && p.presence.v.k === key);
     const isHost = p.presence.host ? " · host" : "";
-    return `<span class="pchip${done ? " done" : ""}" style="--c:${colorOf(p)}"><i></i>${esc(nameOf(p))}${p.sameTab ? " (you)" : ""}<span class="muted">${isHost}</span>${done ? '<span class="ok" aria-label="done">✓</span>' : ""}</span>`;
-  }).join("")}</div>`;
+    return `<span class="pchip${done ? " done" : ""}" style="--c:${colorOf(p)}"><i></i>${nameHtml(p.peer, nameOf(p))}${p.sameTab ? " (you)" : ""}<span class="muted">${isHost}</span>${done ? '<span class="ok" aria-label="done">✓</span>' : ""}</span>`;
+  }).join("")}${robots}</div>`;
 }
 function scoreTable(g) {
   const rows = Object.entries(g.scores || {}).sort((a, b) => b[1] - a[1]);
   if (!rows.length) return `<p class="muted">No points yet.</p>`;
   return `<table class="scores"><tbody>${rows.map(([p, s], i) =>
-    `<tr class="${p === S.myPeer ? "me" : ""}"><td>${i + 1}.</td><td>${esc((g.names || {})[p] || "Someone")}${p === S.myPeer ? " (you)" : ""}</td><td>${s}</td></tr>`).join("")}</tbody></table>`;
+    `<tr class="${p === S.myPeer ? "me" : ""}"><td>${i + 1}.</td><td>${nameHtml(p, (g.names || {})[p] || "Someone")}${p === S.myPeer ? " (you)" : ""}</td><td>${s}</td></tr>`).join("")}</tbody></table>`;
 }
 const pinColor = g => MAGS[hash(g.prompt || "") % MAGS.length][0];
 function promptNote(g, label2) {
@@ -676,10 +748,11 @@ function viewLobby(g) {
     ${isHost ? `
       <div class="field"><span class="eyebrow">Room</span><div class="room-scroll">${ROOMS.map(x => `<button style="--rc:${x.door}" data-act="theme" data-v="${x.id}" aria-pressed="${x.id === r.id}"><span aria-hidden="true">${x.emoji}</span>${esc(x.name)}${x.adult ? " 18+" : ""}</button>`).join("")}</div></div>
       ${r.kids ? "" : `<div class="field"><span class="eyebrow">Cheeky words</span><div class="seg"><button data-act="cheeky" data-v="1" aria-pressed="${g.cheeky !== false}">On</button><button data-act="cheeky" data-v="0" aria-pressed="${g.cheeky === false}">Off</button></div></div>`}
+      ${S.solo ? "" : `<div class="field"><span class="eyebrow">AI players 🤖 (fill up to ${FILL_TO})</span><div class="seg"><button data-act="ai" data-v="1" aria-pressed="${g.ai !== false}">On</button><button data-act="ai" data-v="0" aria-pressed="${g.ai === false}">Off</button></div>${g.ai !== false && n < FILL_TO ? `<p class="muted small">${FILL_TO - n} computer player${FILL_TO - n === 1 ? "" : "s"} will join to fill the room. They build answers and vote too.</p>` : ""}</div>`}
       <p class="muted small">First to ${g.target || WIN_POINTS} points wins. 1 point for every vote your answer gets. Tied at the top? Sudden death rounds until someone's ahead.</p>
       <div class="field"><span class="eyebrow">Time to build</span><div class="seg">${[45, 75, 120].map(v => `<button data-act="dur" data-v="${v}" aria-pressed="${g.dur === v}">${v}s</button>`).join("")}</div></div>
       <button class="btn primary wide" data-act="start">Start ${esc(r.name)} game</button>
-      ${n < 3 && !S.solo ? `<p class="muted small">Best with 3 or more. Voting needs at least 2 answers.</p>` : ""}`
+      ${n < 3 && !S.solo && g.ai === false ? `<p class="muted small">Best with 3 or more. Voting needs at least 2 answers.</p>` : ""}`
     : `<p class="muted">Waiting for the host to start. ${esc(r.emoji)} ${esc(r.name)} · first to ${g.target || WIN_POINTS} points · ${g.dur}s each${!r.kids && g.cheeky !== false ? " · cheeky words on" : ""}.</p>`}
   </section></div>`;
 }
@@ -754,7 +827,7 @@ function viewReveal(g) {
     const r = g.res[a.p] || { votes: 0, pts: 0 };
     return `<div class="strip">
       <span class="words">${answerMags(a, i)}</span>
-      <span class="meta"><b>${esc((g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span><span class="muted">+${r.pts} pt${r.pts === 1 ? "" : "s"}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
+      <span class="meta"><b>${nameHtml(a.p, (g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span><span class="muted">+${r.pts} pt${r.pts === 1 ? "" : "s"}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
     </div>`;
   }).join("") : `<p class="muted">Nobody sent an answer this round.</p>`;
   const tied = tiedAtTop(g);
@@ -770,7 +843,7 @@ function viewFinal(g) {
   const best = rows.length ? rows[0][1] : 0;
   // One winner only. (A tie plays on in sudden death; the coin toss is a last-resort safety net.)
   const tops = g.winner ? [g.winner] : rows.filter(([, s]) => s === best && best > 0).map(([p]) => p);
-  const nm = p => esc((g.names || {})[p] || "Someone");
+  const nm = p => nameHtml(p, (g.names || {})[p] || "Someone");
   const winner = tops.length ? tops.map(nm).join(" & ") : "Nobody";
   const iWon = tops.includes(S.myPeer);
   return `<div class="cols"><section class="card applause">
@@ -806,6 +879,7 @@ function render() {
   }
   const g = currentG();
   if (g) S.lastG = g;
+  recordWeekly(g);
   if (g && g.phase === "build") {
     const key = keyOf(g);
     if (S.draft.key !== key) S.draft = { key, words: [], caret: 0 };
@@ -970,6 +1044,7 @@ const actions = {
     setMine({ a: null }); },
   vote(b) { const g = currentG(); if (!g || g.phase !== "vote" || b.dataset.p === S.myPeer) return; setMine({ v: { k: keyOf(g), p: b.dataset.p } }); },
   start() { if (S.hosting) startGame(); },
+  ai(b) { if (!S.hosting) return; S.settings.ai = b.dataset.v === "1"; store.set("pb.ai", S.settings.ai ? "1" : "0"); setG({ ...S.hostG, ai: S.settings.ai }); },
   cheeky(b) { if (!S.hosting) return; S.settings.cheeky = b.dataset.v === "1"; store.set("pb.cheeky", S.settings.cheeky ? "1" : "0"); setG({ ...S.hostG, cheeky: S.settings.cheeky }); },
   clap() { const g = currentG(); if (g) { playApplause(); confetti(); } },
   dur(b) { if (!S.hosting) return; S.settings.dur = +b.dataset.v; setG({ ...S.hostG, dur: S.settings.dur }); },
@@ -1121,6 +1196,7 @@ function renderHome() {
       : "";
     body = `${list}<button class="btn primary wide" data-act="hostHere">${S.live ? `Start a ${esc(r.name)} game` : `Practise solo in ${esc(r.name)}`}</button>`;
   }
+  renderBoard();
   $("#roomPanel").innerHTML = `<div class="picked-room"><span class="em" aria-hidden="true">${r.emoji}</span><div><h3>${esc(r.name)}${r.adult ? " · 18+" : ""}</h3><p class="muted small">${esc(r.blurb)} · ${r.prompts.length} questions</p></div></div>${body}`;
 }
 const nameInput = $("#nameInput");
@@ -1174,7 +1250,7 @@ document.addEventListener("visibilitychange", () => {
   let room = null; S.netError = null;
   const cfg = window.PB_FIREBASE;
   if (cfg && cfg.apiKey && cfg.databaseURL) {
-    try { NET = await connect(cfg); room = NET.lobby; }
+    try { NET = await connect(cfg); room = NET.lobby; if (NET.lb) NET.lb.onChange(setBoard); }
     catch (e) { console.error(e); S.netError = "offline"; }
   } else S.netError = "setup";
   S.lobby = room; S.live = !!room;
