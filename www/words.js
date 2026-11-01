@@ -21,6 +21,29 @@ plonker pillock wally git minger sod nipple bottom burp snot bogey wazzock jugs 
 
 export const GLUE = ["I", "you", "my", "the", "a", "is", "and", "of", "to", "in", "not", "me", "it", "your", "-s", "-ing", "-ed", "-ly"];
 
+// Connectives and little function words (joiners, pronouns, "to be / to have"
+// verbs). A spread of these is dealt every round, in every room, so there's
+// always something to hold a sentence together. Shown as cream "glue" magnets.
+export const CONNECT = uniq(w(`
+but or if so because when while then than that this these those with without for on at by from into about like as
+he she we they them him her us who what which where how why there here
+am are was were be been do does did have has had can could will would should might must
+also too just even still yet though until before after since
+`));
+
+// Imperatives: bossy "do this!" verbs and short commands. A few are dealt every round.
+export const IMPERATIVES = uniq(w(`
+stop go come look listen wait give take bring get put let make tell show try jump sit stand hurry behave relax enjoy call ask
+think trust believe leave follow watch pass hold drop open close pay share save be do don't never beware imagine pretend
+shut-up calm-down back-off move-over come-here sit-down stand-up wake-up give-up let-go look-out hands-up hold-on watch-out
+get-lost pipe-down hurry-up mind-out shove-off
+`));
+// The ruder commands never go to Just for Kids.
+const KID_UNSAFE = new Set(["shut-up", "get-lost", "shove-off", "back-off", "pipe-down"]);
+const KID_IMPERATIVES = IMPERATIVES.filter(x => !KID_UNSAFE.has(x));
+const KID_VERBS = w(`eat hug jump run dance sing swim fly climb hide laugh giggle bounce wiggle splash play draw paint build bake wave
+  smile skip hop spin tickle share find make give take see look go come help read count race roll kick throw catch`);
+
 export const NOUNS = uniq(w(`
 cat dog nan wizard toaster moon soup sock banana ghost robot pigeon kettle sofa potato dragon hamster spoon crumpet vampire
 goat duck sandwich mattress lawyer knee armpit elbow moustache beard wig ferret llama penguin jelly custard biscuit cheese
@@ -57,6 +80,9 @@ hiccup hop hum hunt impress interrupt jiggle jog kick knock laugh launch microwa
 pinch poke polish pout punch purr quack rant recycle rescue roar rub scratch scrub shout shower shuffle skip slurp smash smile
 snore snuggle spill spin splash squash squeak squeeze stare stomp stroke sulk swim swipe tango teleport tiptoe trip unfriend
 waddle wave wink worry wrestle yawn yodel zoom binge cancel queue stalk photobomb serenade hoard sniffle wrangle
+go come get make take give say tell see look know think use ask try call work play walk talk help feel keep begin show hear turn
+move live write sit stand pay meet learn change lead watch follow stop speak read add spend grow open win offer buy wait send
+build stay fall cut reach fetch deliver swap sprinkle wobble guess pretend promise refuse insist complain behave
 `));
 
 export const ADJS = uniq(w(`
@@ -369,18 +395,23 @@ export function deal(roomId, rnd, opts = {}) {
   const cheekyOn = !room.kids && opts.cheeky !== false;
   const cheeky = cheekyOn ? take(CHEEKY, room.adult ? 8 : 5, used) : [];
   let words;
+  // Every deal now guarantees a spread of connectives, imperatives and verbs
+  // (before 1.3 there were far too few to build a proper sentence).
   if (room.kids) {
-    words = [...GLUE, ...take(room.words, 34, used), ...take(KID_WILD, 10, used)];
+    words = [...GLUE, ...take(room.words, 26, used), ...take(KID_WILD, 8, used), ...take(CONNECT, 9, used),
+      ...take(KID_IMPERATIVES, 5, used), ...take(KID_VERBS, 8, used)];
   } else if (!room.words.length) {
-    words = [...GLUE, ...take(ALL_GENERAL.nouns, 15, used), ...take(ALL_GENERAL.verbs, 10, used), ...take(ALL_GENERAL.adjs, 9, used), ...take(WILD, 10, used)];
+    words = [...GLUE, ...take(CONNECT, 10, used), ...take(IMPERATIVES, 5, used), ...take(ALL_GENERAL.verbs, 13, used),
+      ...take(ALL_GENERAL.nouns, 12, used), ...take(ALL_GENERAL.adjs, 7, used), ...take(WILD, 6, used)];
   } else {
-    words = [...GLUE, ...take(room.words, 16, used), ...take(ALL_GENERAL.nouns, 8, used), ...take(ALL_GENERAL.verbs, 7, used), ...take(ALL_GENERAL.adjs, 6, used), ...take(WILD, 8, used)];
+    words = [...GLUE, ...take(room.words, 14, used), ...take(CONNECT, 10, used), ...take(IMPERATIVES, 5, used),
+      ...take(ALL_GENERAL.verbs, 10, used), ...take(ALL_GENERAL.nouns, 6, used), ...take(ALL_GENERAL.adjs, 5, used), ...take(WILD, 5, used)];
   }
   // Punctuation goes at the end of the tray so it's always easy to find.
   return [...shuffle([...words, ...cheeky]), ...PUNCT];
 }
 
-export const BANK_SIZE = uniq([...GLUE, ...PUNCT, ...CHEEKY, ...NOUNS, ...VERBS, ...ADJS, ...WILD, ...KID_WILD, ...ROOMS.flatMap(r => r.words)]).length;
+export const BANK_SIZE = uniq([...GLUE, ...PUNCT, ...CHEEKY, ...NOUNS, ...VERBS, ...ADJS, ...WILD, ...KID_WILD, ...CONNECT, ...IMPERATIVES, ...KID_VERBS, ...ROOMS.flatMap(r => r.words)]).length;
 
 // Multi-word magnets are stored with hyphens ("ice-cream") and shown with
 // spaces ("ice cream"), except words that really are hyphenated.

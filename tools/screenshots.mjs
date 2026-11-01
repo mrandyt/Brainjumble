@@ -10,6 +10,7 @@ const URL = "http://localhost:8080/index.html";
 mkdirSync(OUT, { recursive: true });
 
 const FAKE_NET = String.raw`
+import { CONNECT } from "./words.js";
 const BOTS = [["sam", "Sam", 3], ["priya", "Priya", 7], ["jo", "Jo", 5]];
 const OPEN = [
   { hosting: "KZTB", n: "Priya", np: 4, ph: "build", t: "space" },
@@ -19,7 +20,7 @@ const OPEN = [
   { hosting: "TGZS", n: "Mo", np: 4, ph: "lobby", t: "paranormal" },
   { hosting: "BCLF", n: "Kat", np: 2, ph: "lobby", t: "kids" }
 ];
-const glue = new Set(["i","you","my","the","a","is","and","of","to","in","not","me","it","your"]);
+const glue = new Set(["i","you","my","the","a","is","and","of","to","in","not","me","it","your", ...CONNECT.map(x => x.toLowerCase())]);
 const label = w => w.replace(/(?<=\S)-(?=\S)/g, " ");
 function compose(ws) { let o = ""; for (const w of ws) { if (w.startsWith("-") && o) o += w.slice(1); else o += (o ? " " : "") + label(w); } return o; }
 // Scripted answers for the screenshot rooms (see FORCE below), so the
@@ -116,6 +117,8 @@ async function phone(browser, scheme) {
   await ctx.addInitScript(() => {
     localStorage.setItem("pb.name", "Andy");
     localStorage.setItem("pb.color", "5");
+    // The real game pauses 15 seconds when starting, joining and finishing; shorten it here.
+    window.PB_DELAY_MS = 400;
   });
   const page = await ctx.newPage();
   page.on("pageerror", e => { console.error("PAGE ERROR:", e.message); process.exitCode = 1; });

@@ -38,11 +38,12 @@
   --paper:#FFFBF0; --paper-ink:#1B1D24; color-scheme:dark}
 
 html,body{min-height:100%}
-body{margin:0;-webkit-tap-highlight-color:transparent;background-color:var(--door);
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;margin:0;-webkit-tap-highlight-color:transparent;background-color:var(--door);
   background-image:linear-gradient(100deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 72%,rgba(0,0,0,.06) 100%);
   background-attachment:fixed;color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.45;transition:background-color .4s ease}
 [hidden]{display:none!important}
-.wrap{max-width:680px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) 56px;display:flex;flex-direction:column;gap:18px}
+.wrap{box-sizing:border-box;width:100%;max-width:var(--wrap-max,680px);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) 56px;display:flex;flex-direction:column;gap:18px}
 h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-display);font-weight:600}
 h3{font-size:19px}
 p{margin:0}
@@ -202,6 +203,42 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 .update-card .btn{box-sizing:border-box;display:block;text-align:center;text-decoration:none}
 .update-banner{display:block;position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;text-align:center;background:var(--btn);color:var(--btn-ink);text-decoration:none;font-weight:700}
 .version-note{text-align:center;margin:0}
+
+/* "Get ready" and "Getting you in" countdowns */
+.ready{align-items:center;text-align:center}
+.countdown{font-family:var(--f-display);font-weight:700;font-size:clamp(72px,24vw,132px);line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* Screen sizes. The layout follows the live window size, so it re-fits the moment a
+   foldable opens or closes, or a phone is turned sideways, with no restart:
+     phone      under 600px   one column (the layout above)
+     medium     600px and up  wider column, answers side by side
+     expanded   840px and up  unfolded foldables and tablets: fills the screen, two columns */
+.cols,.build-grid{display:flex;flex-direction:column;gap:18px}
+.bg-main,.bg-tray,.bg-chips{display:flex;flex-direction:column;gap:18px;min-width:0}
+.cols > *{min-width:0}
+.home-cols,.home-left,.home-right{display:contents}
+#profileCard{order:1}#roomsCard{order:2}#roomPanel{order:3}#joinCard{order:4}#howCard{order:5}
+@media (min-width:600px){
+  :root{--wrap-max:920px}
+  .strips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:stretch}
+  .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .mag{font-size:19px}
+  .mag.suffix{font-size:16px}
+}
+@media (min-width:840px){
+  :root{--wrap-max:1320px}
+  .wrap{padding-block-start:calc(24px + env(safe-area-inset-top,0px))}
+  .home-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:20px;align-items:start}
+  .home-left,.home-right{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .rooms{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .build-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-areas:"main tray" "chips tray";grid-template-rows:auto 1fr;gap:18px 28px;align-items:start}
+  .build-grid:not(:has(.bg-tray)){grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "chips";grid-template-rows:auto}
+  .bg-main{grid-area:main}.bg-tray{grid-area:tray}.bg-chips{grid-area:chips}
+  .strips{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
+  .mag{font-size:20px}
+  .mag.suffix{font-size:17px}
+  .mag.big{font-size:40px}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 <script src="firebase-config.js"></script>
@@ -215,41 +252,50 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
     <p class="tag">Stick words on the fridge. Make your friends laugh.</p>
   </section>
 
-  <section class="card">
-    <label class="field" for="nameInput">Your nickname
-      <input type="text" id="nameInput" maxlength="20" placeholder="e.g. Andy" autocomplete="nickname">
-    </label>
-    <div class="field"><span>Your magnet colour</span><div class="colors" id="colors"></div></div>
-    <div class="status" id="connStatus"><i></i><span>Connecting…</span></div>
-  </section>
+  <!-- On a phone these cards run in one column in the order profile, rooms, room panel,
+       code, how-to. On a wide or unfolded screen they split into two columns (see the CSS). -->
+  <div class="home-cols">
+    <div class="home-left">
+      <section class="card" id="profileCard">
+        <label class="field" for="nameInput">Your nickname
+          <input type="text" id="nameInput" maxlength="20" placeholder="e.g. Andy" autocomplete="nickname">
+        </label>
+        <div class="field"><span>Your magnet colour</span><div class="colors" id="colors"></div></div>
+        <div class="status" id="connStatus"><i></i><span>Connecting…</span></div>
+      </section>
 
-  <section class="card">
-    <div class="card-head"><h3>Pick a room</h3><span class="muted small" id="roomsNote"></span></div>
-    <div class="rooms" id="rooms"></div>
-  </section>
+      <section class="card" id="joinCard">
+        <h3>Got a room code?</h3>
+        <div class="row">
+          <input type="text" id="codeInput" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off">
+          <button class="btn" id="joinBtn">Join</button>
+        </div>
+      </section>
 
-  <section class="card" id="roomPanel"></section>
-
-  <section class="card" id="joinCard">
-    <h3>Got a room code?</h3>
-    <div class="row">
-      <input type="text" id="codeInput" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off">
-      <button class="btn" id="joinBtn">Join</button>
+      <section class="card" id="howCard">
+        <details class="how">
+          <summary>How to play</summary>
+          <ol class="how-list">
+            <li>Pick a room. Everyone gets the same question and the same pile of word magnets.</li>
+            <li>Tap magnets to stick them on your fridge. Little round ones like <b>-ing</b> stick to the word before. Drag a magnet to move it, double-tap it (or drag it off) to take it back. Tap a gap to choose where the next word goes.</li>
+            <li>Answers are shown anonymously. Vote for your favourite, but not your own.</li>
+            <li>Every vote your answer gets is 1 point. First to 10 points wins and gets a round of applause. There are no draws: if players are level at the top, the game plays on until one of them is ahead.</li>
+            <li>Black round magnets are punctuation (<b>? ! ' , . # @ - &amp;</b>). Up to 10 players per game.</li>
+            <li>Starting or joining a game has a 15 second "get ready" pause, so everyone's phone can catch up.</li>
+          </ol>
+        </details>
+      </section>
     </div>
-  </section>
 
-  <section class="card">
-    <details class="how">
-      <summary>How to play</summary>
-      <ol class="how-list">
-        <li>Pick a room. Everyone gets the same question and the same pile of word magnets.</li>
-        <li>Tap magnets to stick them on your fridge. Little round ones like <b>-ing</b> stick to the word before. Drag a magnet to move it, double-tap it (or drag it off) to take it back. Tap a gap to choose where the next word goes.</li>
-        <li>Answers are shown anonymously. Vote for your favourite, but not your own.</li>
-        <li>Every vote your answer gets is 1 point. First to 10 points wins and gets a round of applause.</li>
-        <li>Black round magnets are punctuation (<b>? ! ' , . # @ - &amp;</b>). Up to 10 players per game.</li>
-      </ol>
-    </details>
-  </section>
+    <div class="home-right">
+      <section class="card" id="roomsCard">
+        <div class="card-head"><h3>Pick a room</h3><span class="muted small" id="roomsNote"></span></div>
+        <div class="rooms" id="rooms"></div>
+      </section>
+
+      <section class="card" id="roomPanel"></section>
+    </div>
+  </div>
   <p class="version-note muted small" id="versionNote"></p>
 </main>
 
@@ -266,7 +312,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 
 <script type="module">
 import { connect } from "./net.js";
-import { ROOMS, roomOf, deal, GLUE, label, isPunct } from "./words.js";
+import { ROOMS, roomOf, deal, GLUE, CONNECT, label, isPunct } from "./words.js";
 import { APP_VERSION } from "./version.js";
 import { checkForUpdate } from "./update.js";
 (() => {
@@ -274,12 +320,18 @@ import { checkForUpdate } from "./update.js";
 const COLORS = ["#E5484D","#D9530A","#E2A400","#208A57","#0D8A7B","#0072D6","#3E63DD","#8E4EC6","#D6409F","#5B606B"];
 // Magnet plastics: [colour, ink]
 const MAGS = [["#E5484D","#fff"],["#D9530A","#fff"],["#FFC53D","#2A1F00"],["#208A57","#fff"],["#0D8A7B","#fff"],["#0072D6","#fff"],["#3E63DD","#fff"],["#8E4EC6","#fff"],["#D6409F","#fff"],["#86EAD4","#0B3B33"],["#FFB8A8","#3B1209"]];
-const GLUE_SET = new Set(GLUE.map(g => g.toLowerCase()));
+const GLUE_SET = new Set([...GLUE, ...CONNECT].map(g => g.toLowerCase()));
 const CODE_LETTERS = "BCDFGHJKLMNPQRSTVWXZ";
 const MAX_PLAYERS = 10;   // most players in one game
 const WIN_POINTS = 10;    // first to this many points wins
 const MAX_ROUNDS = 40;    // safety stop if nobody gets there
 const SOLO_ROUNDS = 6;    // solo practice can't score, so it just runs 6 rounds
+// A 15 second pause before a game starts, before a new player joins in, and when a
+// game finishes, so every phone has time to sync. (window.PB_DELAY_MS lets the
+// screenshot robot shorten it.)
+const DELAY_MS = typeof window.PB_DELAY_MS === "number" ? window.PB_DELAY_MS : 15000;
+// Slack for slow connections: answers and votes sent in the last moments still count.
+const BUILD_GRACE_MS = 3500, VOTE_GRACE_MS = 2500, AUTOSEND_MS = 2000;
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
@@ -370,8 +422,20 @@ const allPlayers = () => S.peers.filter(p => p.kind === "viewer" && p.presence &
 // Only the first 10 people in a room play; anyone after that sees "room full".
 const byJoin = (a, b) => ((+a.presence.j || 0) - (+b.presence.j || 0)) || (a.peer < b.peer ? -1 : a.peer > b.peer ? 1 : 0);
 const players = () => allPlayers().sort(byJoin).slice(0, MAX_PLAYERS);
+// Someone who has just joined sits out their 15 second "getting you in" wait, so the
+// game doesn't wait on them for answers or votes until it's over.
+const isActive = p => !((+p.presence.rd || 0) > now());
 const iAmOverflow = () => !S.solo && S.myPeer && !S.hosting && allPlayers().length > MAX_PLAYERS && !players().some(p => p.peer === S.myPeer);
 const topScore = g => Math.max(0, ...Object.values(g.scores || {}));
+// No draws: reaching the target isn't enough on its own. If two or more players are level
+// at the top, the game plays on (sudden death) until exactly one of them is ahead.
+const leadersOf = scores => {
+  const rows = Object.entries(scores || {});
+  const best = Math.max(0, ...rows.map(r => r[1]));
+  return { best, tops: best > 0 ? rows.filter(([, s]) => s === best).map(([p]) => p) : [] };
+};
+const gameWon = g => { const { best, tops } = leadersOf(g.scores); return best >= (g.target || WIN_POINTS) && tops.length === 1; };
+const tiedAtTop = g => { const { best, tops } = leadersOf(g.scores); return best >= (g.target || WIN_POINTS) && tops.length > 1; };
 const nameOf = p => clean(p.presence.n, 20) || "Someone";
 const colorOf = p => COLORS[(+p.presence.c || 0) % COLORS.length];
 const keyOf = g => g.gid + "." + g.round;
@@ -439,7 +503,11 @@ function nextPrompt(theme) {
 }
 function startGame() {
   const g = { ...newLobbyG(S.hostG.theme), dur: S.settings.dur, cheeky: S.settings.cheeky };
-  S.hostG = g; startRound();
+  S.hostG = g;
+  // 15 seconds of "Get ready!" first, so every phone has synced and anyone still joining gets in.
+  // (Solo practice has nobody to wait for, so it starts straight away.)
+  if (S.solo) { startRound(); return; }
+  setG({ ...g, phase: "ready", endsAt: now() + DELAY_MS });
 }
 function startRound() {
   const g = S.hostG; const t = themeOf(g);
@@ -473,7 +541,18 @@ function toReveal() {
   ans.forEach(a => { const votes = tally[a.p]; const win = max > 0 && votes === max; res[a.p] = { votes, win, pts: votes, bonus: 0 }; });
   const scores = { ...g.scores };
   for (const p in res) scores[p] = (scores[p] || 0) + res[p].pts;
-  setG({ ...g, phase: "reveal", res, scores, names: snapshotNames(g), endsAt: now() + 9000 + ans.length * 1500 });
+  // When this round ends the game, keep the results up for at least 15 seconds before the
+  // winner screen, so nobody's phone is still catching up when the game finishes.
+  // A tie at the top never ends the game: it plays on until one player is ahead.
+  const capped = g.round >= (S.solo ? SOLO_ROUNDS : MAX_ROUNDS);
+  const over = gameWon({ scores, target: g.target }) || capped;
+  // Only if the safety cap is hit while still level does a coin toss pick the winner.
+  const lead = leadersOf(scores).tops;
+  const winner = over && capped && !S.solo && lead.length > 1 ? lead[rnd(lead.length)] : null;
+  const hold = over && !S.solo ? DELAY_MS : 0;
+  const next = { ...g, phase: "reveal", res, scores, over, names: snapshotNames(g), endsAt: now() + Math.max(9000 + ans.length * 1500, hold) };
+  if (winner) next.winner = winner;
+  setG(next);
 }
 function canVote(p, g) { return (g.ans || []).some(a => a.p !== p.peer); }
 
@@ -481,16 +560,19 @@ function hostTick() {
   if (!S.hosting || !S.room || !S.hostG) return;
   const h = hostInfo();
   if (h && !h.sameTab && S.myPeer && (NET || h.peer < S.myPeer)) { stepDown(); return; }
-  const g = S.hostG; const t = now(); const ps = players(); const key = keyOf(g);
-  if (g.phase === "build") {
+  const g = S.hostG; const t = now(); const ps = players().filter(isActive); const key = keyOf(g);
+  if (g.phase === "ready") {
+    if (t >= g.endsAt) startRound();
+  } else if (g.phase === "build") {
     const subs = ps.filter(p => p.presence.a && p.presence.a.k === key);
-    if (t >= g.endsAt + 1500 || (ps.length && subs.length === ps.length)) toVote();
+    // The grace period lets answers sent in the last second on a slow connection still arrive.
+    if (t >= g.endsAt + BUILD_GRACE_MS || (ps.length && subs.length === ps.length)) toVote();
   } else if (g.phase === "vote") {
     const voters = ps.filter(p => canVote(p, g));
     const done = voters.filter(p => p.presence.v && p.presence.v.k === key);
-    if (t >= g.endsAt || (voters.length && done.length === voters.length)) toReveal();
+    if (t >= g.endsAt + VOTE_GRACE_MS || (voters.length && done.length === voters.length)) toReveal();
   } else if (g.phase === "reveal") {
-    if (t >= g.endsAt) { if (topScore(g) >= (g.target || WIN_POINTS) || g.round >= (S.solo ? SOLO_ROUNDS : MAX_ROUNDS)) setG({ ...g, phase: "final", endsAt: null }); else startRound(); }
+    if (t >= g.endsAt) { if (g.over || gameWon(g)) setG({ ...g, phase: "final", endsAt: null, doneAt: S.solo ? 0 : now() }); else startRound(); }
   }
   advertise();
 }
@@ -583,7 +665,7 @@ function viewLobby(g) {
   const n = players().length;
   const r = roomOf(g.theme);
   const codeTiles = S.code.split("").map((ch, i) => magHtml(ch, i + 2, null, "big")).join("");
-  return `<section class="card">
+  return `<div class="cols"><section class="card">
     <span class="eyebrow">Room code</span>
     <div class="codeTiles" aria-label="${esc(S.code.split("").join(" "))}">${codeTiles}</div>
     <p class="muted small">${S.solo ? "Solo practice. Friends can't join from this view." : "Friends open the app and type this code, or tap your game in the " + esc(r.name) + " room."}</p>
@@ -594,11 +676,33 @@ function viewLobby(g) {
     ${isHost ? `
       <div class="field"><span class="eyebrow">Room</span><div class="room-scroll">${ROOMS.map(x => `<button style="--rc:${x.door}" data-act="theme" data-v="${x.id}" aria-pressed="${x.id === r.id}"><span aria-hidden="true">${x.emoji}</span>${esc(x.name)}${x.adult ? " 18+" : ""}</button>`).join("")}</div></div>
       ${r.kids ? "" : `<div class="field"><span class="eyebrow">Cheeky words</span><div class="seg"><button data-act="cheeky" data-v="1" aria-pressed="${g.cheeky !== false}">On</button><button data-act="cheeky" data-v="0" aria-pressed="${g.cheeky === false}">Off</button></div></div>`}
-      <p class="muted small">First to ${g.target || WIN_POINTS} points wins. 1 point for every vote your answer gets.</p>
+      <p class="muted small">First to ${g.target || WIN_POINTS} points wins. 1 point for every vote your answer gets. Tied at the top? Sudden death rounds until someone's ahead.</p>
       <div class="field"><span class="eyebrow">Time to build</span><div class="seg">${[45, 75, 120].map(v => `<button data-act="dur" data-v="${v}" aria-pressed="${g.dur === v}">${v}s</button>`).join("")}</div></div>
       <button class="btn primary wide" data-act="start">Start ${esc(r.name)} game</button>
       ${n < 3 && !S.solo ? `<p class="muted small">Best with 3 or more. Voting needs at least 2 answers.</p>` : ""}`
     : `<p class="muted">Waiting for the host to start. ${esc(r.emoji)} ${esc(r.name)} · first to ${g.target || WIN_POINTS} points · ${g.dur}s each${!r.kids && g.cheeky !== false ? " · cheeky words on" : ""}.</p>`}
+  </section></div>`;
+}
+const secsLeft = until => Math.max(0, Math.ceil((until - now()) / 1000));
+// Shown to everyone for 15 seconds after the host taps Start.
+function viewReady(g) {
+  const r = roomOf(g.theme);
+  return `<section class="card ready">
+    <span class="eyebrow">${esc(r.emoji)} ${esc(r.name)} · first to ${g.target || WIN_POINTS}</span>
+    <h2>Get ready!</h2>
+    <div class="countdown" id="cd" data-until="${+g.endsAt}">${secsLeft(+g.endsAt)}</div>
+    <p class="muted">The first question lands when this hits zero. Anyone still joining has time to get in.</p>
+    ${playerChips(g)}
+  </section>`;
+}
+// Shown to someone who has just joined, for 15 seconds, while their phone syncs up.
+function viewJoining() {
+  return `<section class="card ready">
+    <span class="eyebrow">Joining ${esc(S.code)}</span>
+    <h2>Getting you into the game…</h2>
+    <div class="countdown" id="cd" data-until="${S.joinUntil}">${secsLeft(S.joinUntil)}</div>
+    <p class="muted">Hang on while everyone's phones sync up. You'll drop straight in.</p>
+    ${playerChips(null)}
   </section>`;
 }
 function viewBuild(g) {
@@ -626,7 +730,9 @@ function viewBuild(g) {
   const used = new Set(sent ? [] : S.draft.words);
   const tray = sent ? "" : `<div class="tray-head"><span class="eyebrow">Your magnets</span><span class="muted small">${g.tiles.length - used.size} left</span></div>
     <div class="tray">${g.tiles.map((w, i) => used.has(i) ? `<span class="mag ghost">${esc(label(w))}</span>` : magHtml(w, i, `data-act="place" data-t="${i}"`)).join("")}</div>`;
-  return `${promptNote(g)}${board}${actions}${tray}${playerChips(g, "build")}`;
+  // On a phone these stack (question, fridge, magnets, players). On a big or unfolded
+  // screen the fridge sits beside the magnet tray.
+  return `<div class="build-grid"><div class="bg-main">${promptNote(g)}${board}${actions}</div>${tray ? `<div class="bg-tray">${tray}</div>` : ""}<div class="bg-chips">${playerChips(g, "build")}</div></div>`;
 }
 function viewVote(g) {
   const key = keyOf(g);
@@ -651,18 +757,23 @@ function viewReveal(g) {
       <span class="meta"><b>${esc((g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span><span class="muted">+${r.pts} pt${r.pts === 1 ? "" : "s"}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
     </div>`;
   }).join("") : `<p class="muted">Nobody sent an answer this round.</p>`;
-  return `${promptNote(g, "Results")}
+  const tied = tiedAtTop(g);
+  const msg = g.over ? (g.winner ? "Still level after all those rounds, so a coin toss picked the winner. The final results are coming up." : gameWon(g) ? "We have a winner! 👏 The final results are coming up." : "That's the last round. The final results are coming up.")
+    : tied ? `It's a tie at ${leadersOf(g.scores).best} points! There are no draws here, so the next round is sudden death: first to pull ahead wins.`
+    : `First to ${g.target || WIN_POINTS} wins. Next round starts shortly.`;
+  return `${promptNote(g, tied ? "Sudden death next" : "Results")}
     <div class="strips">${strips}</div>
-    <section class="card"><h3>Scores</h3>${scoreTable(g)}<p class="muted small">${topScore(g) >= (g.target || WIN_POINTS) ? "We have a winner! 👏" : `First to ${g.target || WIN_POINTS} wins. Next round starts shortly.`}</p></section>`;
+    <section class="card"><h3>Scores</h3>${scoreTable(g)}<p class="muted small">${msg}</p></section>`;
 }
 function viewFinal(g) {
   const rows = Object.entries(g.scores || {}).sort((a, b) => b[1] - a[1]);
   const best = rows.length ? rows[0][1] : 0;
-  const tops = rows.filter(([, s]) => s === best && best > 0).map(([p]) => p);
+  // One winner only. (A tie plays on in sudden death; the coin toss is a last-resort safety net.)
+  const tops = g.winner ? [g.winner] : rows.filter(([, s]) => s === best && best > 0).map(([p]) => p);
   const nm = p => esc((g.names || {})[p] || "Someone");
   const winner = tops.length ? tops.map(nm).join(" & ") : "Nobody";
   const iWon = tops.includes(S.myPeer);
-  return `<section class="card applause">
+  return `<div class="cols"><section class="card applause">
     <span class="eyebrow">Game over</span>
     <div class="claps" aria-hidden="true"><span>👏</span><span>🏆</span><span>👏</span></div>
     <h2 style="font-size:clamp(32px,9vw,48px)">${winner} win${tops.length === 1 ? "s" : ""}!</h2>
@@ -672,14 +783,27 @@ function viewFinal(g) {
   <section class="card" style="align-items:flex-start">
     <h3>Final scores</h3>
     ${scoreTable(g)}
-    ${S.hosting ? `<button class="btn primary wide" data-act="again">Play again</button>` : `<p class="muted">Waiting for the host to start another game.</p>`}
-  </section>`;
+    ${S.hosting ? `<button class="btn primary wide" id="againBtn" data-act="again"${againLeft(g) > 0 ? ` disabled>Play again in ${Math.ceil(againLeft(g) / 1000)}s` : ">Play again"}</button>` : `<p class="muted">Waiting for the host to start another game.</p>`}
+  </section></div>`;
 }
 
-const PHASE_LABEL = { lobby: "Lobby", build: "Building", vote: "Voting", reveal: "Results", final: "Final" };
+const PHASE_LABEL = { lobby: "Lobby", ready: "Starting", build: "Building", vote: "Voting", reveal: "Results", final: "Final" };
+// A drag can only be live while building. If the round moves on mid-drag (very common
+// in the last seconds), the magnet vanishes and the browser may never send the "finger
+// lifted" event, which used to leave the whole screen frozen: no voting screen, no results.
+function cancelDrag() {
+  const d = S.drag; S.drag = null;
+  if (!d) return;
+  if (d.ghost) d.ghost.remove();
+  try { d.el.releasePointerCapture(d.pid); } catch {}
+}
 function render() {
   if (!S.room) return;
-  if (S.drag) return; // rebuilt when the drag ends
+  if (S.drag) {
+    const gd = currentG();
+    if (gd && gd.phase === "build" && document.contains(S.drag.el)) return; // rebuilt when the drag ends
+    cancelDrag();
+  }
   const g = currentG();
   if (g) S.lastG = g;
   if (g && g.phase === "build") {
@@ -695,9 +819,11 @@ function render() {
   const st = $("#stage");
   let html;
   if (iAmOverflow()) html = viewFull();
+  else if (!S.solo && S.joinUntil && S.joinUntil > now()) html = viewJoining();
   else if (g && r.adult && !S.adult) html = viewAdultGate();
   else if (!g) html = viewNoHost();
   else if (g.phase === "lobby") html = viewLobby(g);
+  else if (g.phase === "ready") html = viewReady(g);
   else if (g.phase === "build" && Array.isArray(g.tiles)) html = viewBuild(g);
   else if (g.phase === "vote") html = viewVote(g);
   else if (g.phase === "reveal") html = viewReveal({ ...g, res: g.res || {}, ans: g.ans || [], scores: g.scores || {} });
@@ -705,7 +831,7 @@ function render() {
   else html = viewNoHost();
   if (S.solo) html = `<p class="note">Solo practice: nobody else can join this one, so voting is skipped.</p>` + html;
   st.innerHTML = html;
-  if (g && g.phase === "final") celebrate(g);
+  if (g && g.phase === "final" && !(S.joinUntil && S.joinUntil > now())) celebrate(g);
   const chip = st.querySelector('.room-scroll [aria-pressed="true"]');
   if (chip) { const sc = chip.parentElement; sc.scrollLeft = chip.offsetLeft - sc.offsetLeft - (sc.clientWidth - chip.offsetWidth) / 2; }
   updateTimer();
@@ -716,14 +842,28 @@ function updateTimer() {
   if (!g || !g.endsAt || g.phase === "lobby" || g.phase === "final") { el.textContent = ""; el.classList.remove("urgent"); return; }
   const left = g.endsAt - now();
   el.textContent = fmt(left);
-  el.classList.toggle("urgent", left < 10000 && g.phase !== "reveal");
+  el.classList.toggle("urgent", left < 10000 && g.phase !== "reveal" && g.phase !== "ready");
+}
+// The big "Get ready" / "Getting you in" numbers count down by themselves.
+function tickCountdown() {
+  const el = $("#cd"); if (!el) return;
+  const until = +el.dataset.until; if (!until) return;
+  el.textContent = Math.max(0, Math.ceil((until - now()) / 1000));
+}
+// "Play again" unlocks 15 seconds after the winner is shown.
+const againLeft = g => (g && g.doneAt ? g.doneAt + DELAY_MS - now() : 0);
+function tickFinal() {
+  const b = $("#againBtn"); if (!b) return;
+  const left = againLeft(currentG());
+  b.disabled = left > 0;
+  b.textContent = left > 0 ? `Play again in ${Math.ceil(left / 1000)}s` : "Play again";
 }
 function autoSubmit() {
   const g = S.room ? currentG() : null;
   if (!g || g.phase !== "build" || !g.tiles) return;
   const key = keyOf(g);
   if (S.mine.a && S.mine.a.k === key) return;
-  if (S.draft.key === key && S.draft.words.length && g.endsAt - now() < 1200 && S.autoKey !== key) {
+  if (S.draft.key === key && S.draft.words.length && g.endsAt - now() < AUTOSEND_MS && S.autoKey !== key) {
     S.autoKey = key; submitDraft(g); toast("Time's up. Your answer was sent.");
   }
 }
@@ -796,7 +936,10 @@ async function enterRoom(code, host) {
   S.peers = r.peers();
   if (host) S.hostG = newLobbyG(S.pick);
   S.joinedAt = now();
-  await r.presence({ n: S.me.n, c: S.me.c, j: S.joinedAt, host: host ? true : null, g: host ? S.hostG : null }).catch(() => {});
+  // Joining someone else's game: sit out 15 seconds while this phone syncs. The host's
+  // game doesn't wait on you for answers or votes until the time's up (see isActive).
+  S.joinUntil = (!S.solo && !host) ? S.joinedAt + DELAY_MS : 0;
+  await r.presence({ n: S.me.n, c: S.me.c, j: S.joinedAt, rd: S.joinUntil || null, host: host ? true : null, g: host ? S.hostG : null }).catch(() => {});
   $("#home").hidden = true; $("#game").hidden = false;
   window.scrollTo(0, 0);
   schedule();
@@ -805,7 +948,8 @@ async function leaveRoom() {
   if (S.hosting) unadvertise();
   try { if (S.unsub) S.unsub(); } catch {}
   try { if (S.room) await S.room.leave(); } catch {}
-  S.room = null; S.hosting = false; S.hostG = null; S.peers = []; S.code = null;
+  cancelDrag();
+  S.room = null; S.hosting = false; S.hostG = null; S.peers = []; S.code = null; S.joinUntil = 0;
   $("#game").hidden = true; $("#home").hidden = false;
   renderHome();
 }
@@ -837,7 +981,7 @@ const actions = {
     setG({ ...S.hostG, theme: r.id });
   },
   confirmAdult() { confirmAdult(); render(); },
-  again() { if (!S.hosting) return; setG(newLobbyG(S.hostG.theme)); },
+  again() { if (!S.hosting || againLeft(S.hostG) > 0) return; setG(newLobbyG(S.hostG.theme)); },
   takeover() { takeOver(); },
   leave() { leaveRoom(); },
   pickRoom(b) { S.pick = roomOf(b.dataset.room).id; store.set("pb.room", S.pick); renderHome(); $("#roomPanel").scrollIntoView({ behavior: "smooth", block: "nearest" }); },
@@ -865,6 +1009,7 @@ function moveTo(from, k) {
   k = Math.max(0, Math.min(ws.length, k)); ws.splice(k, 0, item); S.draft.caret = k + 1; render();
 }
 document.addEventListener("pointerdown", e => {
+  if (S.drag && !document.contains(S.drag.el)) cancelDrag(); // a stale drag must never block new ones
   const el = e.target.closest(".board [data-bi]");
   if (!el || e.button > 0 || S.drag) return;
   const g = currentG(); if (!g || g.phase !== "build") return;
@@ -916,6 +1061,10 @@ function endDrag(e, cancelled) {
 }
 document.addEventListener("pointerup", e => endDrag(e, false));
 document.addEventListener("pointercancel", e => endDrag(e, true));
+// Belt and braces: if the browser drops the finger without telling us, let go of the drag.
+document.addEventListener("lostpointercapture", e => endDrag(e, true));
+window.addEventListener("blur", () => { if (S.drag) { cancelDrag(); schedule(); } });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && S.drag) { cancelDrag(); schedule(); } });
 document.addEventListener("keydown", e => {
   const el = e.target.closest && e.target.closest(".board [data-bi]"); if (!el) return;
   const i = +el.dataset.bi;
@@ -1000,7 +1149,16 @@ function updateHomeMode() {
   renderHome();
 }
 
-setInterval(() => { hostTick(); updateTimer(); autoSubmit(); }, 400);
+setInterval(() => {
+  if (S.room) {
+    // Watchdog: never stay frozen on a drag that has outlived its round.
+    const g = currentG();
+    if (S.drag && !(g && g.phase === "build" && document.contains(S.drag.el))) { cancelDrag(); schedule(); }
+    // The 15 second join wait is over: show the game.
+    if (S.joinUntil && now() >= S.joinUntil) { S.joinUntil = 0; schedule(); }
+  }
+  hostTick(); updateTimer(); autoSubmit(); tickCountdown(); tickFinal();
+}, 400);
 renderLogo(); renderColors(); renderHome();
 $("#versionNote").textContent = "Brain Jumble " + APP_VERSION;
 

@@ -35,9 +35,9 @@ function show(latest, body) {
   el.innerHTML = `<div class="update-card">
     <span class="eyebrow">Update needed</span>
     <h2 id="updTitle">Brain Jumble ${esc(latest)} is out</h2>
-    <p>You've got version ${esc(APP_VERSION)}. Everyone in a game should be on the same version, so please update.</p>
+    <p>You're on version ${esc(APP_VERSION)}. Older versions can't play with the latest one, so anyone on a previous version needs to download the latest build from the Brain Jumble repo on GitHub.</p>
     ${items.length ? `<ul>${items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
-    <p class="small muted">Tap <b>Get the update</b>, download <b>BrainJumble.apk</b> from GitHub, then open it. It installs over this version and keeps your nickname.</p>
+    <p class="small muted">Tap <b>Get the update</b> to open <b>github.com/${esc(REPO)}</b>, download <b>BrainJumble.apk</b>, then open it. It installs over this version and keeps your nickname.</p>
     <a class="btn primary wide" href="${DOWNLOAD_PAGE}" data-upd="go">Get the update</a>
     <button class="btn wide" type="button" data-upd="later">Later</button>
   </div>`;
@@ -56,7 +56,7 @@ function showBanner(latest) {
   const a = document.createElement("a");
   a.className = "update-banner";
   a.href = DOWNLOAD_PAGE;
-  a.innerHTML = `<b>Update to ${esc(latest)}</b> · tap to download`;
+  a.innerHTML = `<b>Update needed: ${esc(latest)}</b> · tap to download from GitHub`;
   document.body.prepend(a);
 }
 

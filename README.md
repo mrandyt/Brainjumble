@@ -10,7 +10,17 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
-## What's new in 1.2
+## What's new in 1.3
+
+> **Update needed:** 1.3 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+
+- **More joining words, commands and verbs.** Every round deals a spread of connectives (*but*, *because*, *with*, *if*), imperatives (*stop*, *give*, *look*, *shut up*) and plenty more verbs, so you can build proper sentences.
+- **15 second "get ready" pause** when starting a game, joining a game and finishing a game, so every phone can catch up first. The host's Play again button unlocks 15 seconds after the winner is shown.
+- **Voting fix.** No more being unable to vote or be voted for, or timed out, at the end of a round or game. Moving a magnet as time runs out can't freeze the screen any more, a dropped connection signs you straight back into the game, and slow connections get a few seconds of slack.
+- **No more shared wins.** If two players are tied at the top when someone reaches 10, the game plays on with sudden-death rounds until one of them is ahead.
+- **Fits any screen.** The layout follows your screen size by itself. Fold phones and tablets use the whole screen (the fridge sits beside your magnets, answers sit side by side), and folding, unfolding or turning your phone no longer restarts the app.
+
+### Earlier: 1.2
 
 - **Over 800 new questions.** Every room now has around 100 (1,221 altogether, up from 407).
 - **No more repeated questions.** Each phone remembers what it's seen, even after closing the app, and the host picks questions nobody in the game has had yet.
@@ -44,10 +54,10 @@ From version 1.2, new versions install straight over the old one, so updating is
 
 ## How a game works
 
-1. **Pick a room and start a game.** You get a four-letter room code. Friends type the code, or just tap your game in the same room on their home screen.
-2. **Build your answer.** Everyone sees the same question and the same ~60 magnets. Tap magnets to stick them on your fridge.
+1. **Pick a room and start a game.** You get a four-letter room code. Friends type the code, or just tap your game in the same room on their home screen. Starting a game gives everyone a 15 second "Get ready!" countdown, and anyone who joins sits out a 15 second "Getting you in" wait while their phone syncs.
+2. **Build your answer.** Everyone sees the same question and the same ~85 magnets, with plenty of joining words, commands and verbs. Tap magnets to stick them on your fridge.
 3. **Vote.** All the answers appear without names. Tap your favourite. You can't vote for your own.
-4. **See who wrote what.** Names are revealed with the votes, and the next round starts automatically. The first player to reach **10 points** wins, and everyone gives them a round of applause.
+4. **See who wrote what.** Names are revealed with the votes, and the next round starts automatically. The first player to reach **10 points** wins, and everyone gives them a round of applause. The final round's results stay up for at least 15 seconds before the winner screen, and the host's **Play again** button unlocks 15 seconds after the winner is shown.
 
 Up to **10 players** can play in one game.
 
@@ -72,7 +82,7 @@ Up to **10 players** can play in one game.
 | Each vote your answer gets | 1 |
 | First to 10 points | Wins the game 🏆👏 |
 
-If two players pass 10 in the same round, the higher score wins. A tie shares the win.
+If two players pass 10 in the same round, the higher score wins. **There are no draws:** if two or more players are level at the top, the game plays on with sudden-death rounds until exactly one of them is ahead.
 
 ### Host settings
 
@@ -80,7 +90,7 @@ Whoever starts the game is the host. Before starting, they can change the room, 
 
 ## Themed rooms
 
-Each room has its own questions and its own magnets, mixed in with the general word bank. Altogether there are about **1,500 words** and over **1,200 questions**, roughly 100 per room.
+Each room has its own questions and its own magnets, mixed in with the general word bank. Altogether there are about **1,750 words** and over **1,200 questions**, roughly 100 per room.
 
 Each phone remembers which questions it has seen (even after the app is closed) and shares that with the game, so the host picks a question nobody playing has had before.
 
@@ -111,7 +121,7 @@ Everything lives in [`www/words.js`](www/words.js):
 
 - Each room in `ROOMS` has a `prompts` list (the questions) and a `words` list (that room's extra magnets).
 - More questions for each room are in [`www/prompts-more.js`](www/prompts-more.js), grouped by room. Add new ones to either file; duplicates are dropped automatically.
-- The general bank shared by most rooms is in `NOUNS`, `VERBS`, `ADJS` and `WILD`.
+- The general bank shared by most rooms is in `NOUNS`, `VERBS`, `ADJS` and `WILD`. `CONNECT` (joining words) and `IMPERATIVES` (commands) are dealt every round in every room.
 - The mildly rude words are in `CHEEKY`, and the punctuation magnets in `PUNCT`.
 - For a magnet with more than one word, join the words with hyphens, like `ice-cream`. It shows on the magnet as "ice cream".
 
@@ -128,7 +138,7 @@ Edit the file on GitHub and commit. A new APK is built automatically within a fe
 - **Multiplayer** runs on Firebase Realtime Database, on the free plan. The host's phone runs the game and everyone else's phone follows along. Each player only writes their own answer and vote.
 - **The Android app** is built by GitHub Actions (`.github/workflows/build.yml`). On every push to `main`, it wraps `www/` with Capacitor, builds the APK, and publishes it as the `latest` release, using `RELEASE_NOTES.md` as the release description.
 - **The screenshots** are taken by `.github/workflows/screenshots.yml`, which plays a quick game in a phone-sized browser with three pretend friends.
-- `signing/debug.keystore` keeps the signing key the same between builds, so updates install cleanly. `tools/configure-android.mjs` tells the Android build to use it and gives each build a higher version code, and the build fails if the APK isn't signed with it. It's a standard debug key, not a secret.
+- `signing/debug.keystore` keeps the signing key the same between builds, so updates install cleanly. `tools/configure-android.mjs` tells the Android build to use it, gives each build a higher version code, and sets the app up for foldables and tablets (resizable window, no restart when the screen changes shape). The build fails if the APK isn't signed with it. It's a standard debug key, not a secret.
 - **Releasing a new version:** bump `version` in `package.json` and update `RELEASE_NOTES.md`, then push. The app's update message compares its own version against the number in the release title.
 
 ### Firebase setup (one time)

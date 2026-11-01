@@ -31,8 +31,17 @@ export async function connect(cfg) {
 
 function makeLobby(db, uid) {
   let myCode = null;
+  let myAd = null;   // the listing this phone last posted, so it can be re-posted after a drop
   let snap = [];
   const handlers = new Set();
+  // After a dropped connection the server deletes this phone's "Open games" listing
+  // (onDisconnect). Put it back when the connection returns.
+  onValue(ref(db, ".info/connected"), s => {
+    if (!s.val() || !myCode || !myAd) return;
+    const r = ref(db, "lobby/" + myCode);
+    onDisconnect(r).remove().catch(() => {});
+    set(r, { ...myAd, at: serverTimestamp() }).catch(() => {});
+  });
   const q = query(ref(db, "lobby"), orderByChild("at"), limitToLast(30));
   onValue(q, s => {
     const v = s.val() || {};
@@ -53,11 +62,12 @@ function makeLobby(db, uid) {
         myCode = patch.hosting;
         const r = ref(db, "lobby/" + myCode);
         onDisconnect(r).remove();
-        return set(r, { uid, n: String(patch.n || ""), np: +patch.np || 0, ph: String(patch.ph || "lobby"), t: String(patch.t || "classic"), at: serverTimestamp() });
+        myAd = { uid, n: String(patch.n || ""), np: +patch.np || 0, ph: String(patch.ph || "lobby"), t: String(patch.t || "classic") };
+        return set(r, { ...myAd, at: serverTimestamp() });
       }
       if (patch.hosting === null && myCode) {
         const r = ref(db, "lobby/" + myCode);
-        myCode = null;
+        myCode = null; myAd = null;
         onDisconnect(r).cancel();
         return remove(r);
       }
@@ -81,6 +91,10 @@ function makeRoom(db, uid, code) {
   let data = {};
   let snap = [];
   const handlers = new Set();
+  // Everything this phone has told the room (name, colour, answer, vote...). Every
+  // write sends all of it, and it's re-sent after a dropped connection (see below).
+  const mirror = {};
+  let joined = false;
 
   const build = () => {
     const players = data.players || {};
@@ -99,6 +113,15 @@ function makeRoom(db, uid, code) {
     handlers.forEach(h => h({ peers: snap }));
   });
   onDisconnect(meRef).remove();
+  // When the connection drops, even for a moment (screen off, wifi to 4G), the server
+  // removes this player from the room. Firebase doesn't put them back by itself, so they
+  // used to stay on screen but be invisible to everyone else: unable to vote or be
+  // voted for, then timed out. Re-register on every reconnect, and re-arm the removal.
+  const stopConn = onValue(ref(db, ".info/connected"), s => {
+    if (!s.val() || !joined) return;
+    onDisconnect(meRef).remove().catch(() => {});
+    update(meRef, plain(mirror)).catch(() => {});
+  });
 
   return {
     name: code,
@@ -106,7 +129,13 @@ function makeRoom(db, uid, code) {
       const p = { ...patch };
       const g = p.g; const host = p.host;
       delete p.g; delete p.host;
-      if (Object.keys(p).length) await update(meRef, plain(p));
+      if (Object.keys(p).length) {
+        const gone = {};
+        for (const k in p) { if (p[k] === null) { delete mirror[k]; gone[k] = null; } else mirror[k] = p[k]; }
+        if (typeof mirror.n === "string") joined = true;
+        // Always include the name: the database rules refuse a player node without one.
+        await update(meRef, plain({ ...mirror, ...gone }));
+      }
       if (host === true && data.host !== uid) {
         await runTransaction(hostRef, cur => {
           const here = (data.players || {});
@@ -123,7 +152,9 @@ function makeRoom(db, uid, code) {
     connected() { return true; },
     async leave() {
       handlers.clear();
+      joined = false;
       stop();
+      stopConn();
       if (data.host === uid) await set(hostRef, null).catch(() => {});
       await onDisconnect(meRef).cancel().catch(() => {});
       await remove(meRef).catch(() => {});
