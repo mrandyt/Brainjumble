@@ -426,32 +426,202 @@ export const label = word => {
 };
 
 // ---------- AI players ----------
-// Builds a silly little sentence out of one round's magnets for a computer player.
-// Returns the magnets in order, ready to send like a human's answer.
-export function botAnswer(tiles, rnd) {
-  const pick = a => a[rnd(a.length)];
-  const suffix = t => /^-(s|ing|ed|ly)$/.test(t);
-  const plain = tiles.filter(t => !isPunct(t) && !suffix(t));
-  const glue = plain.filter(t => GLUE.includes(t));
-  const joiners = plain.filter(t => CONNECT.includes(t) && !GLUE.includes(t));
-  const starters = glue.filter(t => ["I", "you", "my", "the", "a", "your"].includes(t));
-  const rest = plain.filter(t => !GLUE.includes(t) && !CONNECT.includes(t));
-  if (!rest.length) return plain.slice(0, 3);
+// Computer players (marked 🤖) build real sentences out of one round's magnets.
+// Each room gives them a personality: their own sentence shapes, favourite words,
+// way of finishing a sentence and a crew of themed names. (Before 1.5 they just threw
+// random magnets together, which made no sense.)
+
+const NOUN_SET = new Set(NOUNS), VERB_SET = new Set([...VERBS, ...KID_VERBS]), ADJ_SET = new Set(ADJS);
+const ADVERBS = new Set(w(`probably definitely secretly accidentally actually literally basically totally suddenly quietly loudly
+  badly nearly really quite forever always never`));
+// Imperatives that can't be followed by "the thing" (go the moon?), or that need a bit more.
+const INTRANS = new Set(w(`go come wait relax behave hurry sit stand jump listen enjoy be do beware never let put think look`));
+// Verbs that can't take an object ("I look a librarian" doesn't work), and the mild insults
+// that are fine to throw around in any room (the ruder cheeky words only appear in After Dark).
+const INTRANS_V = new Set(w(`look listen wait stand sit jog live work walk talk fall stay hurry crawl sleep cry scream sneeze burp melt
+  explode wobble swim hop skip jump zoom yawn snore sulk faint float drift dive wiggle giggle laugh bounce squeak run dance sing howl moan
+  creak procrastinate chant sweat squat curtsey bow joust flirt wink panic hide arrive happen exist appear apologise cough gargle hiccup yodel quack bark purr roar worry overthink pray whisper`));
+const SOFT_INSULTS = new Set(w(`prat plonker pillock wally git sod wazzock turd bugger minger`));
+const BASE_TPL = [
+  "{SA} {s} {N}",
+  "I {v} {N} [and|but|because] you {v} {N}",
+  "{i} {N} !",
+  "{I} [and|then] {i} {N} !",
+  "{S} is {a} [and|but] {S} is {a}",
+  "{N} [will|can|must|should|would|could] {v} {N}",
+  "why is {S} [so|too|very] {a} ?",
+  "[I|you] {x?} {v} {N}",
+  "if [I|you] {v} {N} then {N} [will|can|must] {u}",
+  "{S} is [in|on|under] {N}",
+  "do not {v} {N} !",
+  "you {a} {c} !",
+  "{x} {S} {s} {N}",
+  "{S} {s} {N} [in|on|under] {N}"
+];
+const PERSONA = {
+  classic: { open: w("oh wow hello oops sorry mate"), end: ["!", "?", "."], verbs: [], adjs: [], tpl: [
+    "my {n1} is {a} [and|but] your {n1} is {a} !", "what {Z} !", "{i} {N} [or|and] I [will|can|must] {v} {N} !",
+    "{SA} is {x?} {a} [and|but] I {v} {N}"] },
+  politics: { open: w("order! sorry please hello sir"), end: [".", "!", "."], verbs: w("vote resign govern heckle spin canvass filibuster promise pledge march protest campaign debate veto"), adjs: w("elected"), tpl: [
+    "I will {v} {N} [and|but] not {v} {N} .", "I [promise|pledge] to {v} {N} [and|but] not {v} {N} .",
+    "my {n1} is {a} [and|but] your {n1} is {x?} {a} .", "[we|they] [will|must|can] {v} {N} [and|but] not {v} {N} .",
+    "I am {a} [and|but] my {n1} [will|can|must] {v} {N} .", "{x} {S} {W} {N} .", "{N} [must|should|will] {v} {N} [or|and] {S} [will|must] {u} ."] },
+  sport: { open: w("wow oh mate hello"), end: ["!", "!", "."], verbs: w("tackle dribble volley sprint chant serve wrestle sweat squat"), adjs: [], tpl: [
+    "what {Z} !", "{S} [is|was] {a} [because|when|while] {S} {s} {N} !", "{S} {W} {N} [in|on|under] {N} !",
+    "I [will|can|must] {v} {N} [and|but] {S} [will|can|must] {v} {N} !", "{i} {N} [or|and] {i} {N} !"] },
+  grownups: { open: w("sorry oops please hello oh"), end: [".", "?", "."], verbs: w("procrastinate mute unmute"), adjs: w("sensible responsible exhausted stressed"), tpl: [
+    "I [am|was] {a} [because|and|but] my {n1} is {a} .", "[why|how] [do|did|can] [I|we|they] {v} {N} ?",
+    "I [should|must|can|will] {v} {N} [after|before|when|if] {S} {s} .", "{i} {N} [or|and] I [will|can|must] {v} {N} .",
+    "{S} is {a} [and|but] I {v} {N} .", "{x} I {v} {N} [but|and] {S} is {a} ."] },
+  gaming: { open: w("GG wow oh hello"), end: ["!", "!", "?"], verbs: w("respawn grind button-mash rage-quit speedrun nerf buff crouch spawn-camp craft"), adjs: w("OP"), tpl: [
+    "{i} {N} [and|then] {v} {N} !", "I [will|can|must] {v} {N} [and|then] {v} {N} !", "{S} is {a} [so|because|and] I {v} {N} !",
+    "[you|I] {v} {N} [and|but] {S} {s} !", "{S} {W} {N} !", "{N} [will|can|must] {v} {N} [if|when|because] I {v} {N} !"] },
+  royalty: { open: w("Your-Majesty off-with-their-heads hello sir darling"), end: ["!", ".", "!"], verbs: w("wave curtsey bow joust decree"), adjs: w("royal regal majestic noble pompous gracious"), tpl: [
+    "{i} {A} !", "we are not {a} !", "{SA} {W} {N} [in|on|under] {N} .", "I {v} {N} [and|because] {S} [is|was] {a} !",
+    "{S} is not {a} [and|but] I {v} {N} !", "[we|I] [will|must|should|can] {v} {N} [and|but] {S} [will|must] {u} !"] },
+  kids: { open: w("hello wow oops please yes"), end: ["!", "!", "!"], verbs: [], adjs: w("big small tiny giant happy silly funny sleepy grumpy brave sparkly fluffy sticky messy noisy quiet magic secret super best yummy yucky smelly stinky wobbly squishy shiny spotty stripy purple green pink blue red yellow golden invisible"), tpl: [
+    "my {n1} is {a} [and|so|but] I {v} {N} !", "[you|I] [can|will|must] {v} {N} !", "{i} {N} [and|then] {i} {N} !",
+    "I [am|was] {a} [and|but|so] I {v} {N} !", "what {Z} !", "{SA} {s} {N} !"] },
+  weather: { open: w("oh wow hello"), end: ["!", ".", "!"], verbs: w("rain drizzle storm thunder hail snow"), exclusive: true, adjs: w("humid muggy chilly freezing boiling scorching damp soggy grey gloomy bright sunny windy breezy overcast icy slushy"), tpl: [
+    "it {R} [on|in|under] {N} !", "it [is|was] {a} [and|but|so] {S} [is|was] {a} !", "[I|you] [will|can|must] {v} {N} [when|if|because] it {R} !",
+    "it {R} [and|but] {S} is {a} !", "{i} {N} [because|or|and] it {R} !", "{x} it {R} [on|in] {N} ."] },
+  books: { open: w("once-upon-a-time shh hello oh"), skip: ["the-end"], end: [".", ".", "!"], verbs: w("rhyme review"), adjs: w("tragic epic gothic cosy"), tpl: [
+    "once-upon-a-time {SA} {s} {N} .", "{S} [is|was] {a} [and|but] {S} {s} .", "[I|you] {v} {N} [and|but] {S} [is|was] {a} .",
+    "{x} {S} {W} {N} .", "what {Z} !", "{i} {N} [or|and] {i} {N} ."] },
+  space: { open: w("hello wow oh"), end: ["!", "!", "."], verbs: w("launch orbit teleport abduct float drift"), adjs: w("lunar solar cosmic interstellar galactic martian"), tpl: [
+    "Houston , {S} is {a} !", "{SA} {s} {N} [in|on|under] {N} !", "[I|we] [will|can|must] {v} {N} [to|in|on] {N} !",
+    "{i} {N} [and|then] {v} {N} !", "{S} {W} {N} [in|on|under] {N} !", "{x} {S} {W} {N} !"] },
+  paranormal: { open: w("boo! oh hello sorry"), end: ["!", "!", "."], verbs: w("haunt howl moan rattle creak scream curse hex bump"), adjs: w("haunted cursed creepy spooky eerie possessed"), tpl: [
+    "{SA} {x?} {R} [in|on|under] {N} !", "beware {A} !", "I {v} {A} [because|and|but] it {s} !", "[you|I] [will|can|must] {v} {N} [in|under|on] {N} !",
+    "{i} {A} [or|and] {S} {W} {N} !", "{x} {S} {W} {N} !", "{SA} {W} {N} ."] },
+  afterdark: { open: w("darling hello oh wow mate sorry oops"), end: ["?", "!", "!"], verbs: w("flirt snog kiss cuddle wink tease seduce swipe match dare spoon"), adjs: w("naughty cheeky saucy spicy frisky steamy flirty sultry sexy hot tipsy drunk naked"), tpl: [
+    "you are {a} [and|but] I {v} {N} !", "I am {a} [and|but] you {v} {N} ?", "[do|did|can|will] you {v} {N} [or|and] {N} ?",
+    "{S} is {x?} {a} [and|but] {S} is {x?} {a} !", "my {c1} is {a} [and|but] your {c1} is {a} !", "{i} {N} [and|then] {i} {N} !",
+    "{x} {S} {W} {N} ?", "{S} {W} {N} [in|on|under] {N} !", "why [do|did|can] you {v} {N} ?",
+    "{C} {W} {N} [in|on|under] {N} !", "[you|I] {x?} {v} {C} ?", "{i} {C} [and|then] {i} {N} !", "you {a} {c} [and|but] I {v} {C} !",
+    "you are {a} [and|but] your {c1} is {a} !", "{x} {C} {W} {N} !"] }
+};
+
+// A crew of themed names for the computer players in each room.
+const CREW = {
+  classic: w("Rita Beep Sparky Gizmo Chip"), politics: ["Hon Member", "Spin Doc", "Backbencher", "Whip Bot", "Mayor Beep"],
+  sport: ["Ref Bot", "Striker", "Keeper", "Gaffer", "VAR Bot"], grownups: ["Brenda", "Gary", "Deadline Dave", "Meeting Mo", "Payday Pat"],
+  gaming: ["NoobBot", "Respawn", "Lagsy", "Pixel", "GG Bot"], royalty: ["Lord Beep", "Lady Gizmo", "Duke Chip", "Baroness Bot", "Sir Sparky"],
+  kids: w("Bubbles Wiggles Giggles Sprinkle Pip"), weather: w("Drizzle Gale Sunny Frosty Thunder"),
+  books: ["Page", "Plot Twist", "Chapter", "Quill", "Epilogue"], space: w("Nebula Rover Comet Orbit Astro"),
+  paranormal: ["Casper Bot", "Spooky", "Boo", "Haunty", "Phantom"], afterdark: w("Cheeky Saucy Frisky Tipsy Naughty")
+};
+const CREW_COLOURS = [7, 5, 2, 3, 8];
+export const botCrew = roomId => (CREW[roomOf(roomId).id] || CREW.classic).map((n, i) => ({ n: "🤖 " + n, c: CREW_COLOURS[i % CREW_COLOURS.length] }));
+
+const isPlural = t => /[^su]s$/i.test(t);
+const isProper = t => /^[A-Z][a-z]/.test(t);
+const safeS = t => /^[a-z]+$/i.test(t) && !/(s|x|z|h|o)$/i.test(t) && !/[^aeiou]y$/i.test(t);
+
+function runTemplate(tpl, ctx) {
+  const { set, pools, roomSet, rnd, P } = ctx;
   const used = new Set(); const out = [];
-  const add = t => { if (t && !used.has(t)) { used.add(t); out.push(t); return true; } return false; };
-  const length = 4 + rnd(5);
-  add(starters.length ? pick(starters) : pick(glue.length ? glue : plain));
-  let guard = 0;
-  while (out.length < length && guard++ < 40) {
-    const roll = rnd(10);
-    if (roll < 5) add(pick(rest));
-    else if (roll < 7 && joiners.length) add(pick(joiners));
-    else if (roll < 9) add(pick(glue.filter(t => !["-s", "-ing", "-ed", "-ly"].includes(t)) || plain));
-    else add(pick(rest));
+  const pick = a => a[rnd(a.length)];
+  const free = (a, f) => a.filter(t => !used.has(t) && (!f || f(t)));
+  const favour = a => { const fav = a.filter(t => roomSet.has(t)); return fav.length && rnd(10) < 7 ? pick(fav) : pick(a); };
+  const grab = (a, f) => { const l = free(a, f); if (!l.length) return null; const t = favour(l); used.add(t); return t; };
+  const lit = x => { if (set.has(x) && !used.has(x)) { used.add(x); return x; } return null; };
+  const det = (first, noun) => {
+    if (isProper(noun) && first === noun) return [];
+    const o = ["the", "my", "your"].filter(d => set.has(d) && !used.has(d));
+    if (!/^[aeiou]/i.test(first) && !/^[A-Z]{2,}/.test(first) && !isPlural(noun) && set.has("a") && !used.has("a")) o.push("a", "a");
+    if (!o.length) return null; const d = pick(o); used.add(d); return [d];
+  };
+  const np = (sing, adj, optAdj, nounPool) => {
+    const noun = grab(nounPool || pools.n, t => !sing || !isPlural(t)); if (!noun) return null;
+    let a = null; if (adj) { a = grab(pools.a); if (!a && !optAdj) return null; }
+    const d = det(a || noun, noun); if (!d) return null;
+    return [...d, ...(a ? [a] : []), noun];
+  };
+  const verbS = pool => { if (!set.has("-s") || used.has("-s")) return null; const v = grab(pool.filter(t => !used.has(t) && safeS(t))); if (!v) return null; used.add("-s"); return [v, "-s"]; };
+  for (const tok of tpl.split(" ")) {
+    let r = null; const opt = tok.endsWith("?}"); const name = tok.replace(/[{}?]/g, "");
+    if (tok[0] === "{") {
+      switch (name) {
+        case "n": { const t = grab(pools.n); r = t && [t]; break; }
+        case "n1": { const t = grab(pools.n, t2 => !isPlural(t2)); r = t && [t]; break; }
+        case "a": { const t = grab(pools.a); r = t && [t]; break; }
+        case "v": { const t = grab(pools.v, t2 => !INTRANS_V.has(t2)); r = t && [t]; break; }
+        case "u": { const t = grab(pools.v, t2 => INTRANS_V.has(t2)) || grab(pools.v); r = t && [t]; break; }
+        case "s": r = verbS(pools.v); break;
+        case "W": r = verbS(pools.R.filter(t => !INTRANS_V.has(t))); break;
+        case "R": r = verbS(pools.R); break;
+        case "i": { const t = grab(pools.i); r = t && [t]; break; }
+        case "I": { const t = grab(pools.I); r = t && [t]; break; }
+        case "x": { const t = grab(pools.x); r = t && [t]; break; }
+        case "c": { const t = grab(pools.c) || grab(pools.n); r = t && [t]; break; }
+        case "c1": { const t = grab(pools.c, t2 => !isPlural(t2)) || grab(pools.n, t2 => !isPlural(t2)); r = t && [t]; break; }
+        case "N": r = np(false, false); break;
+        case "S": r = np(true, false); break;
+        case "A": r = np(false, true, true); break;
+        case "C": r = np(true, true, true, pools.c); break;
+        case "SA": r = np(true, true, true); break;
+        case "Z": {
+          const noun = grab(pools.n, t => !/^[aeiou]/i.test(t) && !isPlural(t) && !isProper(t) && !/^[A-Z]{2,}/.test(t));
+          if (noun && set.has("a") && !used.has("a")) { used.add("a"); const a = grab(pools.a, t => !/^[aeiou]/i.test(t)); r = a && rnd(2) ? ["a", a, noun] : ["a", noun]; } break;
+        }
+      }
+      if (!r && !opt) return null;
+    } else if (tok[0] === "[") {
+      const alts = tok.slice(1, -1).split("|"); const optional = alts.includes("");
+      const ok = alts.filter(x => x && set.has(x) && !used.has(x));
+      if (ok.length) { const x = pick(ok); used.add(x); r = [x]; } else if (!optional) return null;
+    } else if (["?", "!", ",", "."].includes(tok)) { const x = lit(tok); if (x) r = [x]; }
+    else { const x = lit(tok); if (!x) return null; r = [x]; }
+    if (r) out.push(...r);
   }
-  // Never finish on a joining word, and sometimes finish with punctuation if there is one.
-  while (out.length > 2 && (GLUE.includes(out[out.length - 1]) || CONNECT.includes(out[out.length - 1])) && !rest.includes(out[out.length - 1])) out.pop();
-  const ends = tiles.filter(t => t === "!" || t === "?" || t === ".");
-  if (ends.length && rnd(2)) out.push(pick(ends));
+  return out.length >= 3 ? out : null;
+}
+
+// Builds a sentence out of one round's magnets for a computer player, in the voice of the room.
+// Returns the magnets in order, ready to send like a human's answer.
+export function botAnswer(tiles, rnd, roomId) {
+  const room = roomOf(roomId); const P = PERSONA[room.id] || PERSONA.classic;
+  const set = new Set(tiles); const roomSet = new Set(room.words);
+  const opens = new Set([...P.open, ...(P.skip || [])]); const rverbs = new Set(P.verbs); const radjs = new Set(P.adjs);
+  const pools = { n: [], v: [], a: [], i: [], I: [], c: [], x: [], R: [] };
+  const suffix = t => /^-(s|ing|ed|ly)$/.test(t);
+  for (const t of tiles) {
+    if (isPunct(t) || suffix(t) || GLUE.includes(t) || CONNECT.includes(t) || opens.has(t) || /[!']/.test(t) || t === "Your-Majesty") continue;
+    if (IMPERATIVES.includes(t)) { if (t.includes("-") || INTRANS.has(t)) { if (!t.includes("don")) pools.I.push(t); } else pools.i.push(t); }
+    if (ADVERBS.has(t)) { pools.x.push(t); continue; }
+    const isRV = rverbs.has(t), isVerb = VERB_SET.has(t) || isRV, isAdj = ADJ_SET.has(t) || radjs.has(t) || t === "bloody";
+    if (CHEEKY.includes(t)) {
+      if (t === "bloody") pools.a.push(t);
+      else if (room.adult) { pools.c.push(t); pools.n.push(t); }
+      else if (SOFT_INSULTS.has(t)) pools.c.push(t);
+      continue;
+    }
+    if (isRV) pools.R.push(t);
+    if (isVerb && !(P.exclusive && isRV)) pools.v.push(t);
+    if (isAdj) pools.a.push(t);
+    if (NOUN_SET.has(t) || (roomSet.has(t) && !isVerb && !isAdj)) pools.n.push(t);
+  }
+  const ctx = { set, pools, roomSet, rnd, P };
+  const order = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  let out = null;
+  // The room's own sentence shapes come first (most of the time), then the general ones.
+  const lists = rnd(10) < (room.id === "classic" ? 5 : 9) ? [order(P.tpl), order(BASE_TPL)] : [order(BASE_TPL), order(P.tpl)];
+  for (const list of lists) { for (const tpl of list) { out = runTemplate(tpl, ctx); if (out) break; } if (out) break; }
+  if (!out) out = runTemplate("I {v} {N}", ctx) || tiles.filter(t => !isPunct(t) && !suffix(t)).slice(0, 4);
+  // Sometimes open in the room's voice ("boo!", "darling", "Your-Majesty"...).
+  const op = P.open.filter(x => set.has(x) && !out.includes(x));
+  if (op.length && rnd(10) < 5) {
+    const o = pick2(op, rnd);
+    const stop = /!$/.test(o) ? null : o === "off-with-their-heads" && set.has("!") && !out.includes("!") ? "!" : set.has(",") && !out.includes(",") && rnd(10) < 9 ? "," : null;
+    out = [o, ...(stop ? [stop] : []), ...out];
+  }
+  // Finish the way the room would.
+  if (!/^[?!.]$/.test(out[out.length - 1])) {
+    const e = pick2(P.end, rnd);
+    if (set.has(e) && !out.includes(e)) out.push(e);
+  }
+  if (room.id === "books" && set.has("the-end") && !out.includes("the-end") && rnd(10) < 5) out.push("the-end");
   return out;
 }
+const pick2 = (a, rnd) => a[rnd(a.length)];

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" fill="#3E63DD"/><g transform="translate(54 54) scale(1.12) translate(-54 -54)">
+<g transform="translate(54 54)">
+  <g transform="rotate(-9 -12 -2)">
+    <rect x="-31" y="-20" width="34" height="40" rx="6" fill="#1B1D24" opacity=".28" transform="translate(1.6 2.4)"/>
+    <rect x="-31" y="-20" width="34" height="40" rx="6" fill="#FFFDF6"/>
+    <text x="-14" y="10.5" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="32" fill="#1B1D24">B</text>
+  </g>
+  <g transform="rotate(8 14 6)">
+    <rect x="-1" y="-12" width="34" height="40" rx="6" fill="#1B1D24" opacity=".28" transform="translate(1.6 2.4)"/>
+    <rect x="-1" y="-12" width="34" height="40" rx="6" fill="#FFD84D"/>
+    <text x="16" y="18.5" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="32" fill="#1B1D24">J</text>
+  </g>
+  <g transform="rotate(14 24 -20)">
+    <rect x="14" y="-30" width="18" height="15" rx="4" fill="#E5484D"/>
+    <text x="23" y="-18.3" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="13" fill="#FFFDF6">!</text>
+  </g>
+</g>
+</g></svg>

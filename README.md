@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/brain-jumble-icon-512.png" width="120" alt="Brain Jumble icon: two word magnets spelling B and J"></p>
+
 # Brain Jumble
 
 **A fridge-magnet party game for Android phones.** Everyone gets the same silly question and the same pile of word magnets. You've got 75 seconds to stick together the funniest answer you can, then everyone votes, anonymously, for their favourite.
@@ -10,9 +12,15 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
-## What's new in 1.4
+## What's new in 1.5
 
-> **Update needed:** 1.4 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+> **Update needed:** 1.5 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+
+- **AI players talk like the room.** The 🤖 players now build proper sentences in the voice of each room (flirty in After Dark, spooky in Paranormal, grand in Royalty, and so on for all 12), instead of random magnets that made no sense. Rude words only appear in After Dark, never in Just for Kids.
+- **Themed AI names** for every room.
+- **New logo.** The old app icon had the wrong name on it. It's now a **BJ** magnet icon.
+
+### Earlier: 1.4
 
 - **AI players.** With fewer than 6 people in a game, 🤖 computer players fill the empty seats. They build answers, vote and score. The host can switch them off in the lobby.
 - **10 seconds more to vote** (30 seconds plus 5 per answer, up to 70).
