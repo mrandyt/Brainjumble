@@ -418,6 +418,7 @@ import { connect } from "./net.js";
 import { ROOMS, roomOf, deal, GLUE, CONNECT, label, isPunct, botAnswer, botCrew } from "./words.js";
 import { APP_VERSION } from "./version.js";
 import { checkForUpdate } from "./update.js";
+import { setupPush } from "./push.js";
 (() => {
 "use strict";
 const COLORS = ["#E5484D","#D9530A","#E2A400","#208A57","#0D8A7B","#0072D6","#3E63DD","#8E4EC6","#D6409F","#5B606B"];
@@ -1380,6 +1381,7 @@ $("#versionNote").textContent = "Brain Jumble " + APP_VERSION;
 // comes back to the front (at most once an hour).
 let lastUpdateCheck = Date.now();
 checkForUpdate();
+setTimeout(setupPush, 2500); // ask to show update notifications, once the app has settled
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - lastUpdateCheck > 3600 * 1000) { lastUpdateCheck = Date.now(); checkForUpdate(); }
 });

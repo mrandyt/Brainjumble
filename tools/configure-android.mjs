@@ -56,5 +56,9 @@ if (!/android:resizeableActivity=/.test(m)) m = m.replace(/<application\b/, `<ap
 // Handle every size/shape change inside the running app rather than restarting the activity.
 const CHANGES = ["orientation", "keyboardHidden", "keyboard", "screenSize", "smallestScreenSize", "screenLayout", "uiMode", "density", "fontScale", "navigation", "locale"];
 m = m.replace(/android:configChanges="([^"]*)"/, (_, v) => `android:configChanges="${[...new Set([...v.split("|").filter(Boolean), ...CHANGES])].join("|")}"`);
+// Update notifications (Firebase push): a proper small icon and accent colour for them.
+if (!/default_notification_icon/.test(m)) m = m.replace(/(<application\b[^>]*>)/, `$1
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_bj" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notification_color" />`);
 writeFileSync(manifestPath, m);
-console.log("AndroidManifest.xml: resizeable window, no restart on fold/unfold/rotate");
+console.log("AndroidManifest.xml: resizeable window, no restart on fold/unfold/rotate, notification icon");

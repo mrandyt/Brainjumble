@@ -12,9 +12,13 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
-## What's new in 1.6
+## What's new in 1.7
 
-> **Update needed:** 1.6 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+> **Update needed:** 1.7 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+
+- **Update notifications.** The app asks to show notifications, and your phone is told whenever a new version is released, even when the app is closed. Tap the notification to open the app and get the update. Install 1.7 by hand once; notifications start from the next release.
+
+### Earlier: 1.6
 
 - **Back button asks first.** Back in a room asks "Leave this room?" and Yes goes to the room list. On the room list it asks "Exit Brain Jumble?" before closing the app.
 - **New "Midnight" look:** glass cards, glowing room tiles, a livelier background.
@@ -64,6 +68,17 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
 </p>
 
 Full notes for each version are on the [Releases](../../releases/latest) page.
+
+## Update notifications (one-time setup for the game owner)
+
+Releases are announced to every phone with Firebase Cloud Messaging. It's free and uses the same Firebase project as the game.
+
+1. In the [Firebase console](https://console.firebase.google.com/) open the project, then **Project settings → Your apps → Add app → Android**. Package name: `com.psychbabble.game`. Skip the SHA step and download **google-services.json**.
+2. In this repo go to **Settings → Secrets and variables → Actions → New repository secret**. Name it `GOOGLE_SERVICES_JSON` and paste in the whole contents of that file.
+3. In the Firebase console go to **Project settings → Service accounts → Generate new private key**. Create a second secret named `FIREBASE_SERVICE_ACCOUNT` and paste in the whole contents of that file. Never commit it or share it.
+4. Check **Project settings → Cloud Messaging** says *Firebase Cloud Messaging API (V1): Enabled*.
+
+After that, every time `package.json` gets a new version number, the build sends a notification to all phones. Without the two secrets the app still builds and works, just without notifications.
 
 ## Download and install
 

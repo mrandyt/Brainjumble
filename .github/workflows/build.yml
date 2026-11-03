@@ -40,6 +40,17 @@ jobs:
       - name: Add the Brain Jumble icon
         run: cp -r resources/android/res/* android/app/src/main/res/
 
+      - name: Add the Firebase config (needed for update notifications)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "Firebase config added: update notifications are on in this build"
+          else
+            echo "No GOOGLE_SERVICES_JSON secret yet: building without update notifications"
+          fi
+
       - name: Build the APK
         run: |
           cd android
@@ -65,7 +76,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          echo "PREV_NAME=$(gh api repos/${{ github.repository }}/releases/tags/latest --jq .name 2>/dev/null || true)" >> "$GITHUB_ENV"
           gh release delete latest --yes --cleanup-tag || true
           gh release create latest BrainJumble.apk \
             --title "Brain Jumble $(node -p "require('./package.json').version") (latest build)" \
             --notes "$(cat RELEASE_NOTES.md; echo; echo "Built from ${GITHUB_SHA::7}.")"
+
+      - name: Notify every phone when the version number changes
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          NEW=$(node -p "require('./package.json').version")
+          if echo "$PREV_NAME" | grep -q "Brain Jumble $NEW "; then echo "Same version as before ($NEW): no notification"; exit 0; fi
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "No FIREBASE_SERVICE_ACCOUNT secret yet: skipping the notification"; exit 0; fi
+          mkdir -p /tmp/push && cp tools/send-update-push.mjs /tmp/push/ && cd /tmp/push
+          npm init -y >/dev/null && npm pkg set type=module >/dev/null && npm install google-auth-library@9 >/dev/null
+          node send-update-push.mjs "$NEW"
