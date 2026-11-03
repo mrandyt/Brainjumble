@@ -1,11 +1,12 @@
-## Brain Jumble 1.5 — What's new
+## Brain Jumble 1.6 — What's new
 
-- **Update needed: everyone must be on 1.5 to play together.** If you're on a previous version, download the latest build from this repo (github.com/mrandyt/Brainjumble) and install it over the old one.
-- **AI players now talk like the room.** The 🤖 players used to throw random magnets together, so their answers didn't make sense. Now they build proper sentences, in the voice of the room: cheeky and flirty in After Dark, creepy in Paranormal, grand and bossy in Royalty, "it drizzles on my umbrella" in Weather, "what a goal!" in Sport, and so on for all 12 rooms. Just for Kids stays squeaky clean, and the rude words only turn up in After Dark.
-- **Themed AI names.** Every room has its own crew, like Spooky and Phantom in Paranormal, Lord Beep and Lady Gizmo in Royalty, or Ref Bot and VAR Bot in Sport.
-- **New logo.** The app icon said "Pb" from the old name. It's now a fresh **BJ** magnet icon.
+- **Update needed: everyone must be on 1.6 to play together.** If you're on a previous version, download the latest build from this repo (github.com/mrandyt/Brainjumble) and install it over the old one.
+- **Back button asks first.** In a room, Back asks "Leave this room?" and Yes takes you to the room list. On the room list, Back asks "Exit Brain Jumble?" and Yes closes the app. It never quits straight away any more. The Leave button asks too.
+- **New "Midnight" look.** A modern dark design with glass cards, glowing room tiles, purple-to-pink buttons and a livelier background.
+- **New, more eye-catching logo:** a brain made of word magnets.
+- **Fixed a visual bug** where a big dark band could appear across the screen while scrolling on some phones, and the 18+ badge overlapping the text on the After Dark tile.
 
-### Installing 1.5
+### Installing 1.6
 
 Download `BrainJumble.apk` below on your Android phone and open it. It installs over your old Brain Jumble (1.2 or later) and keeps your nickname and colour.
 

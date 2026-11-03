@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#BFE3D0">
+<meta name="theme-color" content="#0B0C1A">
 <title>Brain Jumble</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
@@ -41,7 +41,7 @@ html,body{min-height:100%}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{min-height:100vh;min-height:100dvh;margin:0;-webkit-tap-highlight-color:transparent;background-color:var(--door);
   background-image:linear-gradient(100deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 72%,rgba(0,0,0,.06) 100%);
-  background-attachment:fixed;color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.45;transition:background-color .4s ease}
+  color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.45;transition:background-color .4s ease}
 [hidden]{display:none!important}
 .wrap{box-sizing:border-box;width:100%;max-width:var(--wrap-max,680px);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) 56px;display:flex;flex-direction:column;gap:18px}
 h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-display);font-weight:600}
@@ -73,7 +73,7 @@ button.mag:active{transform:scale(.93)}
 .mag.big{font-size:34px;padding:12px 16px 10px;border-radius:14px}
 
 /* Panels */
-.card{background:var(--panel);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);border:1px solid var(--panel-line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.card{background:var(--panel);border:1px solid var(--panel-line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
 .card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 
 /* Home hero: chrome handle + alphabet magnets */
@@ -123,7 +123,7 @@ details.how[open] summary::after{content:"–"}
 ol.how-list{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
 
 /* Game */
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 8px 8px 12px;background:var(--panel);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--panel-line);border-radius:18px;box-shadow:var(--shadow)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 8px 8px 12px;background:var(--panel);border:1px solid var(--panel-line);border-radius:18px;box-shadow:var(--shadow)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--door)}
 .bar .roomtag{display:flex;align-items:center;gap:6px;font-weight:800;font-size:14px;min-width:0}
 .bar .roomtag span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -168,7 +168,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .board-list i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
 .pchip .ok{color:var(--good);font-weight:800}
 .strips{display:flex;flex-direction:column;gap:14px}
-.strip{display:flex;flex-direction:column;gap:10px;align-items:flex-start;text-align:left;padding:16px;border-radius:20px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:2px solid var(--panel-line);width:100%;box-shadow:var(--shadow)}
+.strip{display:flex;flex-direction:column;gap:10px;align-items:flex-start;text-align:left;padding:16px;border-radius:20px;background:var(--panel);border:2px solid var(--panel-line);width:100%;box-shadow:var(--shadow)}
 .strip .words{display:flex;flex-wrap:wrap;gap:8px 6px}
 .strip.picked{border-color:var(--ink)}
 .strip:disabled{cursor:default;opacity:.85}
@@ -210,6 +210,8 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 .update-card p{margin:0}
 .update-card ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 .update-card .btn{box-sizing:border-box;display:block;text-align:center;text-decoration:none}
+.confirm-actions{display:flex;gap:10px;margin-top:4px}
+.confirm-actions .btn{flex:1}
 .update-banner{display:block;position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;text-align:center;background:var(--btn);color:var(--btn-ink);text-decoration:none;font-weight:700}
 .version-note{text-align:center;margin:0}
 
@@ -249,6 +251,95 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
   .mag.big{font-size:40px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+/* ===== Midnight theme ===== */
+/* ===== Brain Jumble "Midnight" theme: glassy dark UI with glowing accents ===== */
+html:root:root{
+  --ink:#F4F4FB; --muted:#A8ABC4; --line:rgba(255,255,255,.12);
+  --panel:rgba(255,255,255,.06); --panel-solid:#1B1C33; --panel-line:rgba(255,255,255,.10);
+  --chip:rgba(255,255,255,.07);
+  --btn:linear-gradient(135deg,#8A5CFF,#FF4FA3); --btn-ink:#fff;
+  --good:#5BE3A4; --warn:#FF8A80; --focus:#C9B8FF;
+  --paper:#FFFDF6; --paper-ink:#1B1D24;
+  --door:color-mix(in srgb,var(--room) 14%,#0D0E1B);
+  --shadow:0 1px 0 rgba(255,255,255,.06) inset,0 18px 40px -18px rgba(0,0,0,.65);
+  color-scheme:dark}
+html:root:root body{
+  background-color:#0B0C1A;
+  background-image:
+    radial-gradient(circle at center,rgba(255,255,255,.075) 1.3px,transparent 1.8px),
+    radial-gradient(420px 320px at 6% 15%,color-mix(in srgb,var(--room) 55%,transparent),transparent 72%),
+    radial-gradient(380px 360px at 100% 14%,rgba(138,92,255,.55),transparent 72%),
+    radial-gradient(360px 300px at 92% 40%,rgba(255,79,163,.30),transparent 72%),
+    radial-gradient(380px 340px at 0% 58%,rgba(45,212,191,.26),transparent 72%),
+    radial-gradient(420px 360px at 100% 76%,rgba(255,212,59,.18),transparent 72%),
+    radial-gradient(420px 360px at 10% 84%,rgba(138,92,255,.40),transparent 72%);
+  background-size:24px 24px,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%;
+  background-repeat:repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat}
+body::before{background:#0B0C1A!important}
+.card{border-radius:26px;padding:20px;border:1px solid var(--panel-line);background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035))}
+h3{letter-spacing:.01em}
+.eyebrow{color:#B9A6FF}
+
+/* hero: no fridge handle, glowing wordmark */
+.handle{display:none}
+.hero{padding-top:12px;gap:10px}
+.alpha .word span{text-shadow:0 2px 0 color-mix(in srgb,var(--c) 60%,#000),0 0 22px color-mix(in srgb,var(--c) 55%,transparent)}
+.tag{color:var(--muted);font-weight:700}
+
+/* inputs and buttons */
+input[type=text]{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;color:var(--ink)}
+input[type=text]::placeholder{color:#7F83A3}
+.btn{border-radius:999px;padding:12px 20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:var(--ink)}
+.btn.primary{background:linear-gradient(135deg,#8A5CFF,#FF4FA3);border:0;color:#fff;box-shadow:0 10px 24px -8px rgba(255,79,163,.6),inset 0 1px 0 rgba(255,255,255,.35)}
+.dot{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 6px 14px -4px var(--c)}
+.dot[aria-pressed="true"]{outline:3px solid #fff;outline-offset:3px}
+.status.on i{background:var(--good);box-shadow:0 0 0 4px rgba(91,227,164,.2),0 0 12px var(--good)}
+
+/* rooms: glowing glass tiles in each room's colour */
+.room{background:linear-gradient(160deg,color-mix(in srgb,var(--rc) 30%,#1A1B33),#12132A 80%);border:1px solid color-mix(in srgb,var(--rc) 45%,transparent);color:var(--ink);
+  border-radius:22px;min-height:124px;box-shadow:0 14px 30px -16px color-mix(in srgb,var(--rc) 70%,#000)}
+.room::after{display:none}
+.room .em{width:46px;height:46px;font-size:24px;background:linear-gradient(145deg,#fff,color-mix(in srgb,var(--rc) 55%,#fff));box-shadow:0 8px 16px -6px color-mix(in srgb,var(--rc) 80%,#000)}
+.room b{color:#fff;padding-right:0}
+.room .open{color:var(--muted)}
+.room .age{background:#FF4FA3;right:12px;bottom:12px}
+.room[aria-pressed="true"]{border:2px solid var(--rc);transform:translateY(-3px);box-shadow:0 0 0 4px color-mix(in srgb,var(--rc) 25%,transparent),0 18px 34px -14px color-mix(in srgb,var(--rc) 90%,#000)}
+.picked-room .em{background:linear-gradient(145deg,#fff,color-mix(in srgb,var(--room) 55%,#fff))}
+.game-row{border-radius:18px}
+.seg button{padding:9px 15px}
+.seg button[aria-pressed="true"]{background:linear-gradient(135deg,#8A5CFF,#FF4FA3);color:#fff}
+.room-scroll button{background:color-mix(in srgb,var(--rc) 28%,#1A1B33);color:#fff;border:1px solid color-mix(in srgb,var(--rc) 50%,transparent)}
+.room-scroll button[aria-pressed="true"]{border:2px solid #fff}
+
+/* in-game bar and prompt */
+.bar{border-radius:999px;padding:8px 8px 8px 16px;background:rgba(20,21,42,.72);border:1px solid rgba(255,255,255,.12)}
+.bar .code{background:rgba(255,255,255,.1);color:#fff;border-radius:999px;box-shadow:none}
+.timer{color:#fff}
+.note-card{transform:none;border-radius:22px;background-image:none;padding:26px 22px 22px;box-shadow:0 22px 40px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.5) inset}
+.note-card::before{background:linear-gradient(135deg,#8A5CFF,#FF4FA3);box-shadow:0 6px 14px rgba(255,79,163,.55),inset 0 2px 0 rgba(255,255,255,.5)}
+.note-card .eyebrow{color:#6A5BD6}
+
+/* board and magnets: lighter, brighter tiles */
+.board{background:rgba(255,255,255,.04);border:2px dashed rgba(255,255,255,.22);border-radius:24px}
+.board.sent{border-color:var(--good)}
+.mag{border-radius:13px;box-shadow:0 8px 16px -8px color-mix(in srgb,var(--m) 75%,#000),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 0 rgba(0,0,0,.14)}
+.mag::before{opacity:.7}
+.mag.punct{box-shadow:inset 0 0 0 1px rgba(255,255,255,.32),0 6px 12px -6px rgba(0,0,0,.6)}
+.mag.suffix{box-shadow:0 8px 16px -8px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.55)}
+.reads q{color:#fff}
+.strip{border-radius:24px;border:1px solid var(--panel-line)}
+.strip.picked{border:2px solid #FF4FA3;box-shadow:0 0 0 4px rgba(255,79,163,.18)}
+.badge{background:linear-gradient(135deg,#8A5CFF,#FF4FA3);color:#fff}
+.badge.soft{background:rgba(255,255,255,.1);color:var(--ink)}
+.badge.gold{background:linear-gradient(135deg,#FFD43B,#FFA62B);color:#2A1F00}
+.pchip{background:rgba(255,255,255,.08)}
+.update-card{background:#1B1C33;border:1px solid rgba(255,255,255,.12)}
+.toast{background:#fff;color:#14152A}
+
+.card,.bar,.strip{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.hero{position:relative}
+.hero::before{content:"";position:absolute;left:-10%;right:-10%;top:-30px;height:190px;background:radial-gradient(closest-side,rgba(138,92,255,.35),transparent);pointer-events:none;z-index:-1}
+.room .age{right:12px;top:12px;bottom:auto}
 </style>
 <script src="firebase-config.js"></script>
 </head>
@@ -317,7 +408,7 @@ table.scores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
     <span class="code" id="barCode">----</span>
     <span class="spacer"></span>
     <span class="timer" id="timer"></span>
-    <button class="btn" data-act="leave">Leave</button>
+    <button class="btn" data-act="askLeave">Leave</button>
   </header>
   <div id="stage" style="display:flex;flex-direction:column;gap:18px"></div>
 </main>
@@ -1029,6 +1120,52 @@ async function leaveRoom() {
 }
 const newCode = () => Array.from({ length: 4 }, () => CODE_LETTERS[rnd(CODE_LETTERS.length)]).join("");
 
+// ---------- Android back button ----------
+// Back never quits straight away. In a room it asks "Leave this room?" and Yes goes back to
+// the room list; on the room list it asks "Exit Brain Jumble?" and Yes closes the app.
+// Back while one of these questions is open just answers No.
+function askConfirm({ title, text, onYes }) {
+  if (document.querySelector(".confirm-pop")) return;
+  const el = document.createElement("div");
+  el.className = "update-pop confirm-pop";
+  el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "cfTitle");
+  el.innerHTML = `<div class="update-card"><h2 id="cfTitle">${esc(title)}</h2><p class="muted">${esc(text)}</p>
+    <div class="confirm-actions"><button class="btn" type="button" data-cf="no">No</button><button class="btn primary" type="button" data-cf="yes">Yes</button></div></div>`;
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-cf]");
+    if (b && b.dataset.cf === "yes") { el.remove(); onYes(); }
+    else if (e.target === el || (b && b.dataset.cf === "no")) el.remove();
+  });
+  document.body.appendChild(el);
+  el.querySelector("[data-cf=no]").focus(); // the safe answer is the one under your thumb
+}
+function askLeave() {
+  askConfirm({ title: "Leave this room?", text: S.hosting && !S.solo ? "You're hosting. You'll go back to the room list." : "You'll go back to the room list.", onYes: leaveRoom });
+}
+function exitApp() {
+  const cap = window.Capacitor, App = cap && cap.Plugins && cap.Plugins.App;
+  if (App && App.exitApp) { App.exitApp(); return; }
+  if (navigator.app && navigator.app.exitApp) { navigator.app.exitApp(); return; }
+  try { window.close(); } catch {}
+}
+function handleBack() {
+  const ask = document.querySelector(".confirm-pop");
+  if (ask) { ask.remove(); return; }
+  const upd = document.querySelector(".update-pop");
+  if (upd) { const later = upd.querySelector("[data-upd=later]"); if (later) later.click(); return; }
+  if (!$("#game").hidden) { askLeave(); return; }
+  askConfirm({ title: "Exit Brain Jumble?", text: "Are you sure you want to quit the app?", onYes: exitApp });
+}
+(function wireBackButton() {
+  const cap = window.Capacitor;
+  if (!(cap && cap.isNativePlatform && cap.isNativePlatform())) return; // only inside the Android app
+  const App = cap.Plugins && cap.Plugins.App;
+  if (App && App.addListener) { App.addListener("backButton", handleBack); return; }
+  // No app plugin: trap the back gesture with a history entry instead.
+  history.pushState({ bj: 1 }, "");
+  window.addEventListener("popstate", () => { history.pushState({ bj: 1 }, ""); handleBack(); });
+})();
+
 // ---------- actions ----------
 const actions = {
   place(b) { const i = +b.dataset.t; if (S.draft.words.includes(i)) return; S.draft.words.splice(S.draft.caret, 0, i); S.draft.caret++; S.justPlaced = i; render(); },
@@ -1059,6 +1196,7 @@ const actions = {
   again() { if (!S.hosting || againLeft(S.hostG) > 0) return; setG(newLobbyG(S.hostG.theme)); },
   takeover() { takeOver(); },
   leave() { leaveRoom(); },
+  askLeave() { askLeave(); },
   pickRoom(b) { S.pick = roomOf(b.dataset.room).id; store.set("pb.room", S.pick); renderHome(); $("#roomPanel").scrollIntoView({ behavior: "smooth", block: "nearest" }); },
   homeAdult() { confirmAdult(); renderHome(); },
   hostHere() { enterRoom(newCode(), true); },

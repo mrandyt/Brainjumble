@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/brand/brain-jumble-icon-512.png" width="120" alt="Brain Jumble icon: two word magnets spelling B and J"></p>
+<p align="center"><img src="docs/brand/brain-jumble-icon-512.png" width="140" alt="Brain Jumble icon: two word magnets spelling B and J"></p>
 
 # Brain Jumble
 
@@ -12,9 +12,16 @@ Brain Jumble is a fan-made revival of the much-missed online game *Psychbabble*,
   <img src="docs/screenshots/06-results.png" width="250" alt="Round results with votes, points and the top answer highlighted">
 </p>
 
-## What's new in 1.5
+## What's new in 1.6
 
-> **Update needed:** 1.5 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+> **Update needed:** 1.6 can't play with older versions. If you're on a previous version, download the latest build from this repo's **[Releases](../../releases/latest)** page and install it over the old one. The app also tells you when a new version is out.
+
+- **Back button asks first.** Back in a room asks "Leave this room?" and Yes goes to the room list. On the room list it asks "Exit Brain Jumble?" before closing the app.
+- **New "Midnight" look:** glass cards, glowing room tiles, a livelier background.
+- **New logo:** a brain made of word magnets.
+- **Bug fix:** the dark band that could appear across the screen on some phones, and the 18+ badge overlapping text.
+
+### Earlier: 1.5
 
 - **AI players talk like the room.** The 🤖 players now build proper sentences in the voice of each room (flirty in After Dark, spooky in Paranormal, grand in Royalty, and so on for all 12), instead of random magnets that made no sense. Rude words only appear in After Dark, never in Just for Kids.
 - **Themed AI names** for every room.
