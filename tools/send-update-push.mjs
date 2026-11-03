@@ -25,6 +25,18 @@ console.log("Key check:", JSON.stringify({
   keyLength: key.length, lines: lines.length,
   startsOk: lines[0] === "-----BEGIN PRIVATE KEY-----", endsOk: lines[lines.length - 1] === "-----END PRIVATE KEY-----"
 }));
+// Deeper safe check: is the key's inner data intact? Prints only counts and the standard
+// ASN.1 header, never any secret bytes.
+try {
+  const body = lines.slice(1, -1).join("");
+  const badChars = (body.match(/[^A-Za-z0-9+/=]/g) || []).length;
+  const der = Buffer.from(body, "base64");
+  const declared = der[1] === 0x82 ? (der[2] << 8) + der[3] + 4 : null;
+  console.log("Key body check:", JSON.stringify({ badChars, base64Length: body.length, derBytes: der.length, declaredBytes: declared, header: der.subarray(0, 4).toString("hex") }));
+  const { createPrivateKey } = await import("node:crypto");
+  const k = createPrivateKey(key);
+  console.log("Node can read the key:", k.asymmetricKeyType);
+} catch (e) { console.log("Node cannot read the key:", e.code || "", String(e.message).split("\n")[0]); }
 const auth = new GoogleAuth({ credentials, scopes: ["https://www.googleapis.com/auth/firebase.messaging"] });
 const client = await auth.getClient();
 const { token } = await client.getAccessToken();
