@@ -12,6 +12,19 @@ const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT is not set");
 
 const credentials = JSON.parse(raw);
+
+// The private key must be a PEM with real line breaks. If it was pasted with the line
+// breaks written out as backslash-n text, turn them back into real ones.
+let key = String(credentials.private_key || "");
+if (!key.includes("\n") && key.includes("\\n")) key = key.replace(/\\n/g, "\n");
+credentials.private_key = key;
+// Safe self-check: prints facts about the key, never the key itself.
+const lines = key.split("\n").filter(Boolean);
+console.log("Key check:", JSON.stringify({
+  hasClientEmail: !!credentials.client_email, projectId: credentials.project_id || null,
+  keyLength: key.length, lines: lines.length,
+  startsOk: lines[0] === "-----BEGIN PRIVATE KEY-----", endsOk: lines[lines.length - 1] === "-----END PRIVATE KEY-----"
+}));
 const auth = new GoogleAuth({ credentials, scopes: ["https://www.googleapis.com/auth/firebase.messaging"] });
 const client = await auth.getClient();
 const { token } = await client.getAccessToken();

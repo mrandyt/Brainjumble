@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      test_notification:
+        description: "Also send the update notification now, even if the version number hasn't changed"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -86,9 +91,10 @@ jobs:
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TEST_PUSH: ${{ github.event.inputs.test_notification }}
         run: |
           NEW=$(node -p "require('./package.json').version")
-          if echo "$PREV_NAME" | grep -q "Brain Jumble $NEW "; then echo "Same version as before ($NEW): no notification"; exit 0; fi
+          if [ "$TEST_PUSH" != "true" ] && echo "$PREV_NAME" | grep -q "Brain Jumble $NEW "; then echo "Same version as before ($NEW): no notification"; exit 0; fi
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "No FIREBASE_SERVICE_ACCOUNT secret yet: skipping the notification"; exit 0; fi
           mkdir -p /tmp/push && cp tools/send-update-push.mjs /tmp/push/ && cd /tmp/push
           npm init -y >/dev/null && npm pkg set type=module >/dev/null && npm install google-auth-library@9 >/dev/null
