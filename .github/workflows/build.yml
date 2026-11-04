@@ -82,12 +82,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "PREV_NAME=$(gh api repos/${{ github.repository }}/releases/tags/latest --jq .name 2>/dev/null || true)" >> "$GITHUB_ENV"
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest BrainJumble.apk \
-            --title "Brain Jumble $(node -p "require('./package.json').version") (latest build)" \
-            --notes "$(cat RELEASE_NOTES.md; echo; echo "Built from ${GITHUB_SHA::7}.")"
+          TITLE="Brain Jumble $(node -p "require('./package.json').version") (latest build)"
+          NOTES="$(cat RELEASE_NOTES.md; echo; echo "Built from ${GITHUB_SHA::7}.")"
+          # GitHub's API sometimes answers with a temporary server error, so try a few times.
+          for i in 1 2 3 4; do
+            gh release delete latest --yes --cleanup-tag || true
+            if gh release create latest BrainJumble.apk --title "$TITLE" --notes "$NOTES"; then exit 0; fi
+            # It may have been created even though GitHub reported an error.
+            if [ "$(gh api repos/${{ github.repository }}/releases/tags/latest --jq '.draft == false and (.assets|length) > 0' 2>/dev/null)" = "true" ]; then echo "Release is live despite the error"; exit 0; fi
+            echo "Attempt $i failed, retrying"; sleep 15
+          done
+          exit 1
 
       - name: Notify every phone when the version number changes
+        if: always() && hashFiles('BrainJumble.apk') != ''
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
