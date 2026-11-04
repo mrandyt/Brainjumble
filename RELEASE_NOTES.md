@@ -1,3 +1,8 @@
+## Brain Jumble 1.7.1 — What's new
+
+- **Centred home screen.** The title, tagline and version now sit in the middle of the screen.
+- **Update notifications are live.** Allow notifications when asked and you'll get a message whenever a new version is out, even when the app is closed.
+
 ## Brain Jumble 1.7 — What's new
 
 - **Update needed: everyone must be on 1.7 to play together.** If you're on a previous version, download the latest build from this repo (github.com/mrandyt/Brainjumble) and install it over the old one.
