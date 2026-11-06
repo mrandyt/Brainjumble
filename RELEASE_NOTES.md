@@ -1,3 +1,11 @@
+## Brain Jumble 1.8 — What's new
+
+- **A modern new look for the title.** A clean wordmark beside the magnet-brain mark replaces the tilted multicolour letters.
+- **AI players have real names.** Maya, Liam, Priya and friends now fill empty seats, with names to suit each room.
+- **Quicker starts.** The "Get ready" pause before a game, and for someone joining, is now 10 seconds.
+- **Update notifications are on by default,** with an On/Off switch on the home screen.
+- **Play in your PC browser** at mrandyt.github.io/Brainjumble.
+
 ## Brain Jumble 1.7.1 — What's new
 
 - **Centred home screen.** The title, tagline and version now sit in the middle of the screen.

@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;800&family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
 <style>
 /* Layout: a pastel retro-modern fridge door. Each themed room repaints the door.
    Glossy plastic word magnets; frosted panels; one column that works on a phone. */
@@ -347,6 +347,14 @@ input[type=text]::placeholder{color:#7F83A3}
 .hero{align-items:center;text-align:center}
 .alpha{justify-content:center}
 .tag{text-align:center;text-wrap:balance}
+
+/* Modern wordmark (replaces the tilted multicolour letters) */
+.alpha{display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:14px;font-size:inherit;line-height:1}
+.alpha .mark{width:clamp(52px,15vw,68px);height:auto;border-radius:22%;box-shadow:0 8px 28px rgba(110,70,255,.45),0 0 0 1px rgba(255,255,255,.14) inset}
+.alpha .wm{display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-family:"Sora",var(--f-display),system-ui,sans-serif;font-weight:800;letter-spacing:-.035em;text-align:left}
+.alpha .wm-a{font-size:clamp(22px,6.6vw,34px);color:#F4F2FF;text-transform:uppercase;letter-spacing:.14em;font-weight:600;line-height:1}
+.alpha .wm-b{font-size:clamp(36px,11.5vw,58px);line-height:.95;background:linear-gradient(95deg,#B9A4FF 0%,#8A6CFF 45%,#FF7AC8 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding-bottom:.06em}
+#pushField[hidden]{display:none}
 </style>
 <script src="firebase-config.js"></script>
 </head>
@@ -368,6 +376,10 @@ input[type=text]::placeholder{color:#7F83A3}
           <input type="text" id="nameInput" maxlength="20" placeholder="e.g. Andy" autocomplete="nickname">
         </label>
         <div class="field"><span>Your magnet colour</span><div class="colors" id="colors"></div></div>
+        <div class="field" id="pushField" hidden><span>Update notifications</span>
+          <div class="seg"><button type="button" data-push="1">On</button><button type="button" data-push="0">Off</button></div>
+          <span class="muted small" id="pushNote"></span>
+        </div>
         <div class="status" id="connStatus"><i></i><span>Connecting…</span></div>
       </section>
 
@@ -390,8 +402,8 @@ input[type=text]::placeholder{color:#7F83A3}
             <li>Answers are shown anonymously. Vote for your favourite, but not your own.</li>
             <li>Every vote your answer gets is 1 point. First to 10 points wins and gets a round of applause. There are no draws: if players are level at the top, the game plays on until one of them is ahead.</li>
             <li>Black round magnets are punctuation (<b>? ! ' , . # @ - &amp;</b>). Up to 10 players per game.</li>
-            <li>Fewer than 6 players? 🤖 AI players fill the empty seats and talk in the style of the room (the host can switch them off). Votes you win in games with friends count towards the weekly scoreboard, and the top three names wear a halo until Monday.</li>
-                        <li>Starting or joining a game has a 15 second "get ready" pause, so everyone's phone can catch up.</li>
+            <li>Fewer than 6 players? 🤖 AI players (with ordinary first names) fill the empty seats and talk in the style of the room (the host can switch them off). Votes you win in games with friends count towards the weekly scoreboard, and the top three names wear a halo until Monday.</li>
+                        <li>Starting or joining a game has a 10 second "get ready" pause, so everyone's phone can catch up.</li>
           </ol>
         </details>
       </section>
@@ -425,7 +437,7 @@ import { connect } from "./net.js";
 import { ROOMS, roomOf, deal, GLUE, CONNECT, label, isPunct, botAnswer, botCrew } from "./words.js";
 import { APP_VERSION } from "./version.js";
 import { checkForUpdate } from "./update.js";
-import { setupPush } from "./push.js";
+import { setupPush, setPushEnabled, pushAvailable, pushWanted } from "./push.js";
 (() => {
 "use strict";
 const COLORS = ["#E5484D","#D9530A","#E2A400","#208A57","#0D8A7B","#0072D6","#3E63DD","#8E4EC6","#D6409F","#5B606B"];
@@ -437,10 +449,11 @@ const MAX_PLAYERS = 10;   // most players in one game
 const WIN_POINTS = 10;    // first to this many points wins
 const MAX_ROUNDS = 40;    // safety stop if nobody gets there
 const SOLO_ROUNDS = 6;    // solo practice can't score, so it just runs 6 rounds
-// A 15 second pause before a game starts, before a new player joins in, and when a
+// A 10 second pause before a game starts and before a new player joins in, and a 15 second one when a
 // game finishes, so every phone has time to sync. (window.PB_DELAY_MS lets the
 // screenshot robot shorten it.)
 const DELAY_MS = typeof window.PB_DELAY_MS === "number" ? window.PB_DELAY_MS : 15000;
+const START_MS = typeof window.PB_DELAY_MS === "number" ? window.PB_DELAY_MS : 10000; // "Get ready" before a game, and "getting you in" for a new player
 // Slack for slow connections: answers and votes sent in the last moments still count.
 const BUILD_GRACE_MS = 3500, VOTE_GRACE_MS = 2500, AUTOSEND_MS = 2000;
 
@@ -533,7 +546,7 @@ const allPlayers = () => S.peers.filter(p => p.kind === "viewer" && p.presence &
 // Only the first 10 people in a room play; anyone after that sees "room full".
 const byJoin = (a, b) => ((+a.presence.j || 0) - (+b.presence.j || 0)) || (a.peer < b.peer ? -1 : a.peer > b.peer ? 1 : 0);
 const players = () => allPlayers().sort(byJoin).slice(0, MAX_PLAYERS);
-// Someone who has just joined sits out their 15 second "getting you in" wait, so the
+// Someone who has just joined sits out their 10 second "getting you in" wait, so the
 // game doesn't wait on them for answers or votes until it's over.
 const isActive = p => !((+p.presence.rd || 0) > now());
 const iAmOverflow = () => !S.solo && S.myPeer && !S.hosting && allPlayers().length > MAX_PLAYERS && !players().some(p => p.peer === S.myPeer);
@@ -645,7 +658,7 @@ function nextPrompt(theme) {
   const p = best[rnd(best.length)]; used.push(p); markSeen(p); return p;
 }
 // ---------- AI players ----------
-// When fewer than 6 people are in a game, computer players (marked 🤖) fill the empty
+// When fewer than 6 people are in a game, computer players fill the empty
 // seats. They live only in the game state the host publishes: they build an answer from
 // the same magnets, vote like anyone else, and score points. Humans always come first, and
 // the host can switch them off in the lobby. They never take part in solo practice.
@@ -665,10 +678,10 @@ function withBots(g) {
 function startGame() {
   const g = { ...newLobbyG(S.hostG.theme), dur: S.settings.dur, cheeky: S.settings.cheeky, ai: S.settings.ai };
   S.hostG = g;
-  // 15 seconds of "Get ready!" first, so every phone has synced and anyone still joining gets in.
+  // 10 seconds of "Get ready!" first, so every phone has synced and anyone still joining gets in.
   // (Solo practice has nobody to wait for, so it starts straight away.)
   if (S.solo) { startRound(); return; }
-  setG({ ...withBots(g), phase: "ready", endsAt: now() + DELAY_MS });
+  setG({ ...withBots(g), phase: "ready", endsAt: now() + START_MS });
 }
 function startRound() {
   const g = withBots(S.hostG); const t = themeOf(g);
@@ -856,7 +869,7 @@ function viewLobby(g) {
   </section></div>`;
 }
 const secsLeft = until => Math.max(0, Math.ceil((until - now()) / 1000));
-// Shown to everyone for 15 seconds after the host taps Start.
+// Shown to everyone for 10 seconds after the host taps Start.
 function viewReady(g) {
   const r = roomOf(g.theme);
   return `<section class="card ready">
@@ -867,7 +880,7 @@ function viewReady(g) {
     ${playerChips(g)}
   </section>`;
 }
-// Shown to someone who has just joined, for 15 seconds, while their phone syncs up.
+// Shown to someone who has just joined, for 10 seconds, while their phone syncs up.
 function viewJoining() {
   return `<section class="card ready">
     <span class="eyebrow">Joining ${esc(S.code)}</span>
@@ -1109,9 +1122,9 @@ async function enterRoom(code, host) {
   S.peers = r.peers();
   if (host) S.hostG = newLobbyG(S.pick);
   S.joinedAt = now();
-  // Joining someone else's game: sit out 15 seconds while this phone syncs. The host's
+  // Joining someone else's game: sit out 10 seconds while this phone syncs. The host's
   // game doesn't wait on you for answers or votes until the time's up (see isActive).
-  S.joinUntil = (!S.solo && !host) ? S.joinedAt + DELAY_MS : 0;
+  S.joinUntil = (!S.solo && !host) ? S.joinedAt + START_MS : 0;
   await r.presence({ n: S.me.n, c: S.me.c, j: S.joinedAt, rd: S.joinUntil || null, host: host ? true : null, g: host ? S.hostG : null }).catch(() => {});
   $("#home").hidden = true; $("#game").hidden = false;
   window.scrollTo(0, 0);
@@ -1297,12 +1310,9 @@ document.addEventListener("keydown", e => {
 
 // ---------- home ----------
 function renderLogo() {
-  // Each word is kept together so a narrow screen wraps between words, never mid-word.
-  let i = 0;
-  $("#logo").innerHTML = "BRAIN JUMBLE".split(" ").map(word => `<span class="word">${word.split("").map(ch => {
-    const k = i++;
-    return `<span aria-hidden="true" style="--c:${MAGS[(k * 3) % 9][0]};--r:${(((k * 53) % 9) - 4) * 1.6}deg">${ch}</span>`;
-  }).join("")}</span>`).join(`<span class="gap"></span>`);
+  // Modern lockup: the magnet-brain mark beside a clean two-tone wordmark.
+  $("#logo").innerHTML = `<img class="mark" src="icon-192.png" alt="" width="64" height="64">` +
+    `<span class="wm" aria-hidden="true"><span class="wm-a">Brain</span><span class="wm-b">Jumble</span></span>`;
 }
 function renderColors() {
   $("#colors").innerHTML = COLORS.map((c, i) => `<button class="dot" style="--c:${c}" data-color="${i}" aria-label="Colour ${i + 1}" aria-pressed="${S.me.c === i}"></button>`).join("");
@@ -1376,7 +1386,7 @@ setInterval(() => {
     // Watchdog: never stay frozen on a drag that has outlived its round.
     const g = currentG();
     if (S.drag && !(g && g.phase === "build" && document.contains(S.drag.el))) { cancelDrag(); schedule(); }
-    // The 15 second join wait is over: show the game.
+    // The 10 second join wait is over: show the game.
     if (S.joinUntil && now() >= S.joinUntil) { S.joinUntil = 0; schedule(); }
   }
   hostTick(); updateTimer(); autoSubmit(); tickCountdown(); tickFinal();
@@ -1388,6 +1398,21 @@ $("#versionNote").textContent = "Brain Jumble " + APP_VERSION;
 // comes back to the front (at most once an hour).
 let lastUpdateCheck = Date.now();
 checkForUpdate();
+// "Update notifications" switch (Android app only; on by default).
+function renderPush() {
+  const f = $("#pushField"); if (!pushAvailable()) { f.hidden = true; return; }
+  f.hidden = false;
+  const on = pushWanted();
+  f.querySelectorAll("[data-push]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.push === "1") === on)));
+  $("#pushNote").textContent = on ? "You'll get a notification when a new version is out." : "Off. You won't be told about new versions.";
+}
+$("#pushField").addEventListener("click", async e => {
+  const b = e.target.closest("[data-push]"); if (!b) return;
+  const now = await setPushEnabled(b.dataset.push === "1");
+  if (b.dataset.push === "1" && !now) toast("Allow notifications for Brain Jumble in your phone's settings to turn this on.");
+  renderPush();
+});
+renderPush();
 setTimeout(setupPush, 2500); // ask to show update notifications, once the app has settled
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - lastUpdateCheck > 3600 * 1000) { lastUpdateCheck = Date.now(); checkForUpdate(); }

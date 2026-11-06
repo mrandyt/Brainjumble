@@ -426,7 +426,7 @@ export const label = word => {
 };
 
 // ---------- AI players ----------
-// Computer players (marked 🤖) build real sentences out of one round's magnets.
+// Computer players build real sentences out of one round's magnets.
 // Each room gives them a personality: their own sentence shapes, favourite words,
 // way of finishing a sentence and a crew of themed names. (Before 1.5 they just threw
 // random magnets together, which made no sense.)
@@ -502,17 +502,17 @@ const PERSONA = {
     "you are {a} [and|but] your {c1} is {a} !", "{x} {C} {W} {N} !"] }
 };
 
-// A crew of themed names for the computer players in each room.
+// A crew of everyday first names for the computer players in each room.
 const CREW = {
-  classic: w("Rita Beep Sparky Gizmo Chip"), politics: ["Hon Member", "Spin Doc", "Backbencher", "Whip Bot", "Mayor Beep"],
-  sport: ["Ref Bot", "Striker", "Keeper", "Gaffer", "VAR Bot"], grownups: ["Brenda", "Gary", "Deadline Dave", "Meeting Mo", "Payday Pat"],
-  gaming: ["NoobBot", "Respawn", "Lagsy", "Pixel", "GG Bot"], royalty: ["Lord Beep", "Lady Gizmo", "Duke Chip", "Baroness Bot", "Sir Sparky"],
-  kids: w("Bubbles Wiggles Giggles Sprinkle Pip"), weather: w("Drizzle Gale Sunny Frosty Thunder"),
-  books: ["Page", "Plot Twist", "Chapter", "Quill", "Epilogue"], space: w("Nebula Rover Comet Orbit Astro"),
-  paranormal: ["Casper Bot", "Spooky", "Boo", "Haunty", "Phantom"], afterdark: w("Cheeky Saucy Frisky Tipsy Naughty")
+  classic: w("Maya Liam Priya Jack Zoe"), politics: w("Margaret Dominic Harriet Nigel Aisha"),
+  sport: w("Danny Chloe Marcus Sam Imogen"), grownups: w("Brenda Gary Dave Michelle Pat"),
+  gaming: w("Kai Jordan Riley Tyler Mia"), royalty: w("Henry Eleanor Charles Victoria Edward"),
+  kids: w("Ollie Lily Max Ruby Freddie"), weather: w("Autumn Jasper Skye Rory Summer"),
+  books: w("Jane Oliver Emily Edmund Charlotte"), space: w("Luna Neil Carl Sally Gene"),
+  paranormal: w("Raven Vincent Lenore Edgar Willa"), afterdark: w("Jade Rocco Scarlett Vince Roxy")
 };
 const CREW_COLOURS = [7, 5, 2, 3, 8];
-export const botCrew = roomId => (CREW[roomOf(roomId).id] || CREW.classic).map((n, i) => ({ n: "🤖 " + n, c: CREW_COLOURS[i % CREW_COLOURS.length] }));
+export const botCrew = roomId => (CREW[roomOf(roomId).id] || CREW.classic).map((n, i) => ({ n, c: CREW_COLOURS[i % CREW_COLOURS.length] }));
 
 const isPlural = t => /[^su]s$/i.test(t);
 const isProper = t => /^[A-Z][a-z]/.test(t);
