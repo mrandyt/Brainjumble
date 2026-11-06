@@ -365,6 +365,92 @@ export const ROOMS = [
       "What you should never say in the bedroom", "The honeymoon went wrong because…", "An autocorrect fail I can't take back",
       "My biggest red flag", "The rules of our situationship"
     ]
+  },
+  {
+    id: "food", name: "Food", emoji: "🍕", door: "#F7D3B0", blurb: "Snacks, sauces and kitchen disasters",
+    words: w(`pizza burger chips curry noodles pasta sandwich toastie sausage bacon omelette pancake waffle cupcake biscuit
+      doughnut custard gravy ketchup mustard pickle cheese butter jam honey peanut-butter marmite avocado banana mango
+      sprout broccoli carrot potato tomato onion garlic chilli spice salt pepper sugar flour dough recipe chef cook baker
+      waiter takeaway delivery menu leftovers buffet picnic barbecue oven microwave toaster kettle frying-pan spatula whisk
+      bake fry boil roast grill stir chop slice nibble gobble munch slurp crunchy crispy gooey sizzling spicy sweet sour
+      tasty hungry greedy soggy burnt delicious yummy brunch`),
+    prompts: [
+      "The secret ingredient in my famous recipe", "A review of the worst restaurant in town", "What the chef shouts when the kitchen's on fire",
+      "A pizza topping that should be illegal", "The takeaway driver's honest opinion", "My last meal would be…",
+      "A menu item that sounds posh but isn't", "What the leftovers say at midnight", "The worst thing to find in a soup",
+      "A cookery show that went terribly wrong", "Advice from a grumpy sausage", "The real reason the cake sank",
+      "A sandwich named after me", "What the toaster thinks about breakfast", "The most dramatic thing a pancake has done",
+      "A warning on a packet of very hot crisps", "Why the buffet was closed", "The waiter whispered…",
+      "A new flavour of ice cream nobody wants", "What my fridge light sees at night", "The secret of a perfect cuppa",
+      "A diet that lasted one afternoon", "The barbecue went wrong when…", "A food blogger's most pretentious sentence",
+      "Why the chips are always cold", "A TV chef's catchphrase", "What the gravy boat is plotting",
+      "The recipe my gran took to the grave", "A school dinner that scared everyone", "Why I got banned from the all-you-can-eat",
+      "An honest label on a jar of pickles", "The snack that ruined my day"
+    ]
+  },
+  {
+    id: "movies", name: "Movies & TV", emoji: "🎬", door: "#D9C3E8", blurb: "Plot holes, cliffhangers and bad reboots",
+    words: w(`movie film cinema popcorn trailer sequel prequel remake reboot blockbuster premiere director actor actress star
+      extra stunt script scene take cut action camera lights screen subtitles soundtrack credits cameo plot-twist cliffhanger
+      hero villain sidekick detective spy zombie robot dinosaur superhero wizard pirate cowboy alien sitcom soap drama
+      reality-show quiz-show talent-show binge-watch remote couch spoiler finale season episode channel streaming Oscar
+      trophy red-carpet autograph paparazzi fame dramatic hilarious terrifying epic cheesy cringe iconic legendary
+      rewind pause rewatch applaud`),
+    prompts: [
+      "The tagline of a film nobody should watch", "A plot twist that ruins everything", "The worst superhero's origin story",
+      "What the villain says in the sequel", "A review of a film I've never seen", "A soap opera storyline that got out of hand",
+      "The title of a cheesy romcom", "What the director whispered to the actor", "My acceptance speech at the Oscars",
+      "A new reality show nobody asked for", "The spoiler I couldn't keep to myself", "What happens after the credits",
+      "A blockbuster starring my cat", "The trailer voice-over for my week", "Why the remake was a mistake",
+      "A line from a very bad disaster movie", "What the stunt double really thinks", "The sitcom that should never be made",
+      "A film set entirely in a lift", "Why the hero never calls for help", "A cliffhanger at the end of the season",
+      "My character's catchphrase", "The worst thing to shout in a cinema", "A talent show act that went wrong",
+      "A deleted scene that was deleted for good reason", "A dinosaur's audition tape", "The popcorn's review of the film",
+      "The plot of a disaster movie about my morning", "What the paparazzi found in my bin", "An action hero's most useless gadget",
+      "A voiceover for a nature documentary about my family", "Why the sequel is always worse"
+    ]
+  },
+  {
+    id: "pets", name: "Pets", emoji: "🐶", door: "#F1D9C0", blurb: "Cats, dogs and suspicious hamsters",
+    words: w(`dog puppy cat kitten hamster rabbit goldfish parrot budgie tortoise guinea-pig pony horse hen duck pigeon
+      squirrel hedgehog spider snail lead collar kennel basket cage bowl biscuit treat bone ball stick toy scratching-post
+      litter-tray fur whiskers paw claw tail beak wing feather fluff vet walkies fetch roll-over sit stay bark meow woof
+      purr squeak tweet hiss chew dig scratch lick sniff wag nap cuddle zoomies cute naughty fluffy sleepy muddy loyal
+      grumpy playful clever dribble hairball`),
+    prompts: [
+      "What my dog thinks about all day", "The cat's secret double life", "A complaint from the hamster in the wheel",
+      "What the parrot repeated at the worst moment", "The real reason the sofa is destroyed", "A diary entry from a goldfish",
+      "What the vet says when I walk in", "My pet's dating profile", "Why the dog ate the homework",
+      "A strongly worded letter from a cat", "A rule the dog made for the house", "The pigeon's plan for world domination",
+      "What the tortoise is thinking very slowly", "An advert for the world's laziest cat", "The zoomies, explained",
+      "A pet shop sign that says too much", "What the squirrels discuss in the garden", "The reason I am always late for walkies",
+      "A dog's review of the postman", "A message from the rabbit at the bottom of the garden", "What the budgie says to the mirror",
+      "My pet's biggest fear", "The cat's view of Mondays", "A speech at the hamster's retirement",
+      "The dog park's most gossiped-about secret", "Instructions for bathing a cat", "What the fish sees through the glass",
+      "A pet that should not be allowed", "Why the horse said no", "A pup's first day at school",
+      "A cat's shopping list", "The hedgehog's holiday plans"
+    ]
+  },
+  {
+    id: "music", name: "Music", emoji: "🎸", door: "#F2C9D2", blurb: "Bad lyrics, worse bands and encores",
+    words: w(`song band singer guitar drums piano violin trumpet saxophone microphone speaker headphones concert gig festival
+      stage encore backstage roadie groupie fan superstar rockstar DJ remix album single chart hit lyrics chorus verse
+      melody rhythm beat bass solo duet choir orchestra conductor karaoke busker jukebox playlist vinyl cassette
+      radio tune hum sing shout strum drum dance jam rock pop rap disco opera jazz blues folk punk metal loud quiet
+      catchy off-key flat sharp groovy funky smooth soulful noisy tuneful encore`),
+    prompts: [
+      "The title of my band's first album", "The worst lyric in a love song", "What the drummer is really thinking",
+      "A band name for a group of pensioners", "My karaoke song and why it went wrong", "The chorus of a very sad song about toast",
+      "What the busker said to the pigeon", "A review of the loudest gig ever", "The secret message in a backwards record",
+      "The rockstar's rider demands", "A tune stuck in my head forever", "What the choir whispered before the solo",
+      "The first line of a protest song about Mondays", "A festival toilet's diary entry", "A new music genre I just invented",
+      "Why the band split up", "The conductor's angriest tweet", "What the guitar says when it's out of tune",
+      "A song that should never be played at a wedding", "My walk-on music", "An opera about a lost sock",
+      "The DJ's worst announcement", "A music teacher's greatest fear", "The headline when the band reunited",
+      "What the jukebox plays when no one is looking", "A lullaby from a heavy metal band", "The encore nobody asked for",
+      "My neighbour's drum solo, reviewed", "The saxophone's big secret", "A playlist for the worst road trip",
+      "A song title made of only vegetables", "The roadie's tell-all book"
+    ]
   }
 ];
 
@@ -494,6 +580,14 @@ const PERSONA = {
   paranormal: { open: w("boo! oh hello sorry"), end: ["!", "!", "."], verbs: w("haunt howl moan rattle creak scream curse hex bump"), adjs: w("haunted cursed creepy spooky eerie possessed"), tpl: [
     "{SA} {x?} {R} [in|on|under] {N} !", "beware {A} !", "I {v} {A} [because|and|but] it {s} !", "[you|I] [will|can|must] {v} {N} [in|under|on] {N} !",
     "{i} {A} [or|and] {S} {W} {N} !", "{x} {S} {W} {N} !", "{SA} {W} {N} ."] },
+  food: { open: w("yum oh hello sorry please"), end: ["!", "!", "."], verbs: w("bake fry boil roast grill stir chop slice nibble gobble munch slurp"), adjs: w("tasty hungry greedy soggy burnt delicious yummy crispy gooey sizzling"), tpl: [
+    "my {n1} is {a} [and|but] your {n1} is {a} !", "I [will|can|must] {v} {N} [and|then] {v} {N} !", "{S} is {a} [because|and|but] I {v} {N} !", "{i} {N} [or|and] {i} {N} !"] },
+  movies: { open: w("action cut wow oh hello"), end: ["!", ".", "!"], verbs: w("applaud rewind pause rewatch"), adjs: w("dramatic hilarious terrifying epic cheesy iconic legendary"), tpl: [
+    "{SA} {s} {N} [in|on|under] {N} !", "[I|you] {v} {N} [and|but] {S} [is|was] {a} !", "in a world where {S} {s} {N} !", "{S} is {a} [and|but] {S} {s} {N} !"] },
+  pets: { open: w("woof meow hello oh wow"), end: ["!", "!", "."], verbs: w("fetch bark purr chew dig scratch lick sniff wag nap cuddle"), adjs: w("cute naughty fluffy sleepy muddy loyal playful clever"), tpl: [
+    "my {n1} is {a} [and|but] I {v} {N} !", "I [will|can|must] {v} {N} [and|then] {v} {N} !", "{SA} {s} {N} [in|on|under] {N} !", "{i} {N} [and|then] {i} {N} !"] },
+  music: { open: w("one-two hello oh wow yeah"), end: ["!", "!", "."], verbs: w("sing strum drum jam shout hum dance"), adjs: w("catchy off-key flat sharp groovy funky smooth soulful noisy tuneful"), tpl: [
+    "{S} is {a} [and|but] I {v} {N} !", "I [will|can|must] {v} {N} [and|then] {v} {N} !", "{i} {N} [and|then] {i} {N} !", "{SA} {s} {N} [in|on|under] {N} !"] },
   afterdark: { open: w("darling hello oh wow mate sorry oops"), end: ["?", "!", "!"], verbs: w("flirt snog kiss cuddle wink tease seduce swipe match dare spoon"), adjs: w("naughty cheeky saucy spicy frisky steamy flirty sultry sexy hot tipsy drunk naked"), tpl: [
     "you are {a} [and|but] I {v} {N} !", "I am {a} [and|but] you {v} {N} ?", "[do|did|can|will] you {v} {N} [or|and] {N} ?",
     "{S} is {x?} {a} [and|but] {S} is {x?} {a} !", "my {c1} is {a} [and|but] your {c1} is {a} !", "{i} {N} [and|then] {i} {N} !",
@@ -509,7 +603,9 @@ const CREW = {
   gaming: w("Kai Jordan Riley Tyler Mia"), royalty: w("Henry Eleanor Charles Victoria Edward"),
   kids: w("Ollie Lily Max Ruby Freddie"), weather: w("Autumn Jasper Skye Rory Summer"),
   books: w("Jane Oliver Emily Edmund Charlotte"), space: w("Luna Neil Carl Sally Gene"),
-  paranormal: w("Raven Vincent Lenore Edgar Willa"), afterdark: w("Jade Rocco Scarlett Vince Roxy")
+  paranormal: w("Raven Vincent Lenore Edgar Willa"), afterdark: w("Jade Rocco Scarlett Vince Roxy"),
+  food: w("Rosie Marco Tilly Bernard Poppy"), movies: w("Orson Greta Spike Nora Hugo"),
+  pets: w("Bella Buddy Molly Toby Daisy"), music: w("Ziggy Stevie Billie Elton Dolly")
 };
 const CREW_COLOURS = [7, 5, 2, 3, 8];
 export const botCrew = roomId => (CREW[roomOf(roomId).id] || CREW.classic).map((n, i) => ({ n, c: CREW_COLOURS[i % CREW_COLOURS.length] }));

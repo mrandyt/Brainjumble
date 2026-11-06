@@ -355,6 +355,26 @@ input[type=text]::placeholder{color:#7F83A3}
 .alpha .wm-a{font-size:clamp(22px,6.6vw,34px);color:#F4F2FF;text-transform:uppercase;letter-spacing:.14em;font-weight:600;line-height:1}
 .alpha .wm-b{font-size:clamp(36px,11.5vw,58px);line-height:.95;background:linear-gradient(95deg,#B9A4FF 0%,#8A6CFF 45%,#FF7AC8 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding-bottom:.06em}
 #pushField[hidden]{display:none}
+
+/* Reactions */
+.strip-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rx{display:flex;gap:6px;flex-wrap:wrap}
+.rx button{display:inline-flex;align-items:center;gap:5px;min-width:44px;min-height:38px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--chip);font-size:18px;line-height:1;justify-content:center}
+.rx button b{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.rx button[aria-pressed="true"]{background:linear-gradient(135deg,#8A5CFF,#FF4FA3);color:#fff;border-color:transparent}
+.rx button:disabled{opacity:.9;cursor:default}
+.rxs{letter-spacing:.04em;font-weight:800}
+#soundField .seg{margin-top:2px}
+#soundBtn{padding-inline:12px;min-width:44px}
+/* Fridge door: the board where you stick your magnets */
+.board{position:relative;min-height:150px;padding:18px 44px 18px 16px;gap:10px 2px;border:1px solid rgba(255,255,255,.35)!important;border-radius:26px;
+  background:linear-gradient(100deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.2) 18%,rgba(255,255,255,.06) 40%,rgba(255,255,255,.17) 70%,rgba(255,255,255,.05) 100%),linear-gradient(180deg,#8E9BB5,#6D7A96 60%,#5E6A86);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -10px 24px rgba(10,14,40,.35),0 14px 34px -14px rgba(0,0,0,.6)}
+.board::after{content:"";position:absolute;right:12px;top:16%;bottom:16%;width:10px;border-radius:8px;background:linear-gradient(90deg,#D8DEEC,#9EA9C0 55%,#E9EDF7);box-shadow:0 2px 6px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.4)}
+.board.sent{border-color:var(--good)!important}
+.board .placeholder{color:#E7EBF7;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.board .mag{box-shadow:0 10px 14px -8px rgba(5,8,30,.7),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 0 rgba(0,0,0,.14)}
+.strip{box-sizing:border-box;max-width:100%}
 </style>
 <script src="firebase-config.js"></script>
 </head>
@@ -379,6 +399,9 @@ input[type=text]::placeholder{color:#7F83A3}
         <div class="field" id="pushField" hidden><span>Update notifications</span>
           <div class="seg"><button type="button" data-push="1">On</button><button type="button" data-push="0">Off</button></div>
           <span class="muted small" id="pushNote"></span>
+        </div>
+        <div class="field" id="soundField"><span>Sound effects</span>
+          <div class="seg"><button type="button" data-sound="1">On</button><button type="button" data-sound="0">Off</button></div>
         </div>
         <div class="status" id="connStatus"><i></i><span>Connecting…</span></div>
       </section>
@@ -427,6 +450,7 @@ input[type=text]::placeholder{color:#7F83A3}
     <span class="code" id="barCode">----</span>
     <span class="spacer"></span>
     <span class="timer" id="timer"></span>
+    <button class="btn" id="soundBtn" data-act="sound" type="button">🔊</button>
     <button class="btn" data-act="askLeave">Leave</button>
   </header>
   <div id="stage" style="display:flex;flex-direction:column;gap:18px"></div>
@@ -852,6 +876,7 @@ function viewLobby(g) {
   return `<div class="cols"><section class="card">
     <span class="eyebrow">Room code</span>
     <div class="codeTiles" aria-label="${esc(S.code.split("").join(" "))}">${codeTiles}</div>
+    ${S.solo ? "" : `<button class="btn wide" data-act="invite" type="button">📨 Invite friends</button>`}
     <p class="muted small">${S.solo ? "Solo practice. Friends can't join from this view." : "Friends open the app and type this code, or tap your game in the " + esc(r.name) + " room."}</p>
   </section>
   <section class="card">
@@ -919,27 +944,48 @@ function viewBuild(g) {
   // screen the fridge sits beside the magnet tray.
   return `<div class="build-grid"><div class="bg-main">${promptNote(g)}${board}${actions}</div>${tray ? `<div class="bg-tray">${tray}</div>` : ""}<div class="bg-chips">${playerChips(g, "build")}</div></div>`;
 }
+const REACTIONS = ["😂", "🔥", "💀", "👏"];
+// Everyone's reactions, as { answerPeer: { emoji: count } } (you can't react to your own answer).
+function reactTally(g) {
+  const key = keyOf(g), out = {};
+  for (const p of players()) {
+    const rx = p.presence.rx; if (!rx || rx.k !== key || !rx.m || typeof rx.m !== "object") continue;
+    for (const [to, e] of Object.entries(rx.m)) {
+      if (!REACTIONS.includes(e) || to === p.peer) continue;
+      (out[to] = out[to] || {})[e] = (out[to][e] || 0) + 1;
+    }
+  }
+  return out;
+}
+const myReacts = g => (S.mine.rx && S.mine.rx.k === keyOf(g) && S.mine.rx.m) || {};
+function rxBar(g, a, tally) {
+  const mine = myReacts(g)[a.p], t = tally[a.p] || {}, own = a.p === S.myPeer;
+  return `<div class="rx" role="group" aria-label="Reactions">${REACTIONS.map(e => `<button type="button" data-act="react" data-p="${esc(a.p)}" data-e="${e}" aria-pressed="${mine === e}" aria-label="React ${e}"${own ? " disabled" : ""}>${e}${t[e] ? `<b>${t[e]}</b>` : ""}</button>`).join("")}</div>`;
+}
+const rxSummary = t => REACTIONS.filter(e => t && t[e]).map(e => `${e} ${t[e]}`).join("  ");
 function viewVote(g) {
   const key = keyOf(g);
+  const tally = reactTally(g);
   const chosen = S.mine.v && S.mine.v.k === key ? S.mine.v.p : null;
   const strips = (g.ans || []).map((a, i) => {
     const mine = a.p === S.myPeer;
-    return `<button class="strip${a.p === chosen ? " picked" : ""}" data-act="vote" data-p="${esc(a.p)}" ${mine ? "disabled" : ""} aria-pressed="${a.p === chosen}" aria-label="${esc(a.t)}">
+    return `<div class="strip-col"><button class="strip${a.p === chosen ? " picked" : ""}" data-act="vote" data-p="${esc(a.p)}" ${mine ? "disabled" : ""} aria-pressed="${a.p === chosen}" aria-label="${esc(a.t)}">
       <span class="words">${answerMags(a, i)}</span>
       ${mine ? `<span class="badge soft">Yours</span>` : a.p === chosen ? `<span class="badge">Your vote</span>` : ""}
-    </button>`;
+    </button>${rxBar(g, a, tally)}</div>`;
   }).join("");
   return `${promptNote(g, "Vote")}
-    <p class="muted" style="font-weight:700">Pick your favourite. You can change it until time runs out.</p>
+    <p class="muted" style="font-weight:700">Pick your favourite. You can change it until time runs out. Tap an emoji to react.</p>
     <div class="strips">${strips}</div>${playerChips(g, "vote")}`;
 }
 function viewReveal(g) {
+  const tally = reactTally(g);
   const ans = (g.ans || []).slice().sort((a, b) => ((g.res[b.p] || {}).votes || 0) - ((g.res[a.p] || {}).votes || 0));
   const strips = ans.length ? ans.map((a, i) => {
     const r = g.res[a.p] || { votes: 0, pts: 0 };
     return `<div class="strip">
       <span class="words">${answerMags(a, i)}</span>
-      <span class="meta"><b>${nameHtml(a.p, (g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span><span class="muted">+${r.pts} pt${r.pts === 1 ? "" : "s"}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
+      <span class="meta"><b>${nameHtml(a.p, (g.names || {})[a.p] || "Someone")}${a.p === S.myPeer ? " (you)" : ""}</b><span class="votes">${r.votes} vote${r.votes === 1 ? "" : "s"}</span>${rxSummary(tally[a.p]) ? `<span class="rxs">${rxSummary(tally[a.p])}</span>` : ""}<span class="muted">+${r.pts} pt${r.pts === 1 ? "" : "s"}</span>${r.win ? `<span class="badge gold">Top answer</span>` : ""}</span>
     </div>`;
   }).join("") : `<p class="muted">Nobody sent an answer this round.</p>`;
   const tied = tiedAtTop(g);
@@ -991,6 +1037,11 @@ function render() {
   }
   const g = currentG();
   if (g) S.lastG = g;
+  { const sp = g ? keyOf(g) + g.phase : "";
+    if (S.sfxSp !== undefined && sp && sp !== S.sfxSp && !(S.joinUntil > now())) {
+      if (g.phase === "reveal") sfx.roll(); else if (g.phase === "vote" || g.phase === "build") sfx.go();
+    }
+    S.sfxSp = sp; }
   recordWeekly(g);
   if (g && g.phase === "build") {
     const key = keyOf(g);
@@ -1034,7 +1085,9 @@ function updateTimer() {
 function tickCountdown() {
   const el = $("#cd"); if (!el) return;
   const until = +el.dataset.until; if (!until) return;
-  el.textContent = Math.max(0, Math.ceil((until - now()) / 1000));
+  const left = Math.max(0, Math.ceil((until - now()) / 1000));
+  el.textContent = left;
+  if (left !== S.lastTick) { S.lastTick = left; if (left > 0 && left <= 3) sfx.tick(); }
 }
 // "Play again" unlocks 15 seconds after the winner is shown.
 const againLeft = g => (g && g.doneAt ? g.doneAt + DELAY_MS - now() : 0);
@@ -1060,8 +1113,55 @@ function unlockAudio() {
   try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch {}
 }
 document.addEventListener("pointerdown", unlockAudio, { capture: true });
+// ---------- sound effects (all made in code; no sound files) ----------
+const sfx = (() => {
+  let on = store.get("pb.sound") !== "0";
+  const ac = () => { unlockAudio(); return audio; };
+  const tone = (f, d, o = {}) => {
+    if (!on) return; const c = ac(); if (!c) return;
+    const t = c.currentTime + (o.at || 0), osc = c.createOscillator(), g = c.createGain();
+    osc.type = o.type || "sine"; osc.frequency.setValueAtTime(f, t); if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.v || 0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    osc.connect(g); g.connect(c.destination); osc.start(t); osc.stop(t + d + 0.03);
+  };
+  const noise = (d, o = {}) => {
+    if (!on) return; const c = ac(); if (!c) return;
+    const len = Math.max(1, Math.floor(c.sampleRate * d)), buf = c.createBuffer(1, len, c.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = o.f || 2000; f.Q.value = 1.2;
+    const g = c.createGain(); g.gain.value = o.v || 0.2;
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(c.currentTime + (o.at || 0));
+  };
+  return {
+    get on() { return on; },
+    set(v) { on = !!v; store.set("pb.sound", on ? "1" : "0"); },
+    clack() { noise(0.05, { f: 2600, v: 0.28 }); tone(190, 0.08, { type: "triangle", to: 90, v: 0.16 }); },
+    pop() { tone(520, 0.09, { to: 900, v: 0.1 }); },
+    tick() { tone(880, 0.06, { type: "square", v: 0.04 }); },
+    go() { tone(660, 0.12, { v: 0.09 }); tone(990, 0.22, { at: 0.1, v: 0.09 }); },
+    send() { tone(440, 0.1, { v: 0.1 }); tone(660, 0.16, { at: 0.08, v: 0.1 }); },
+    roll() { for (let i = 0; i < 14; i++) noise(0.06, { f: 1700, v: 0.07 + i * 0.012, at: i * 0.07 }); tone(1046, 0.7, { type: "triangle", at: 1.0, v: 0.13 }); tone(1568, 0.8, { at: 1.02, v: 0.07 }); }
+  };
+})();
+function renderSound() {
+  const on = sfx.on;
+  document.querySelectorAll("[data-sound]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.sound === "1") === on)));
+  const sb = $("#soundBtn"); if (sb) { sb.textContent = on ? "🔊" : "🔇"; sb.setAttribute("aria-label", on ? "Mute sound effects" : "Turn sound effects on"); }
+}
+// Share a link that opens this room in the web version (friends on a phone or PC can both use it).
+const SHARE_BASE = "https://mrandyt.github.io/Brainjumble/";
+async function inviteFriends() {
+  if (!S.code || S.solo) return;
+  const url = `${SHARE_BASE}?room=${S.code}`, text = `Join my Brain Jumble game! Room code ${S.code}`;
+  try { if (navigator.share) { await navigator.share({ title: "Brain Jumble", text, url }); return; } }
+  catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(`${text} ${url}`); toast("Invite link copied. Paste it into a chat."); }
+  catch { toast("Share this link: " + url); }
+}
 // A crowd clapping, made from short bursts of filtered noise (no sound files needed).
 function playApplause(secs = 4.5) {
+  if (!sfx.on) return;
   unlockAudio(); if (!audio) return;
   const ac = audio, t0 = ac.currentTime + 0.05;
   const len = Math.floor(ac.sampleRate * 0.06);
@@ -1189,10 +1289,10 @@ function handleBack() {
 
 // ---------- actions ----------
 const actions = {
-  place(b) { const i = +b.dataset.t; if (S.draft.words.includes(i)) return; S.draft.words.splice(S.draft.caret, 0, i); S.draft.caret++; S.justPlaced = i; render(); },
+  place(b) { const i = +b.dataset.t; if (S.draft.words.includes(i)) return; S.draft.words.splice(S.draft.caret, 0, i); S.draft.caret++; S.justPlaced = i; sfx.clack(); render(); },
   caret(b) { S.draft.caret = +b.dataset.i; render(); },
   clear() { S.draft.words = []; S.draft.caret = 0; render(); },
-  submit() { const g = currentG(); if (g && g.phase === "build") submitDraft(g); },
+  submit() { const g = currentG(); if (g && g.phase === "build") { sfx.send(); submitDraft(g); } },
   unsubmit() { const g = currentG(); if (g && S.mine.a && Array.isArray(S.mine.a.w) && g.tiles) {
       // rebuild the draft from what was sent, matching magnets by word
       const pool = g.tiles.map((w, i) => [w, i]); const idx = [];
@@ -1200,7 +1300,15 @@ const actions = {
       S.draft.words = idx; S.draft.caret = idx.length;
     }
     setMine({ a: null }); },
-  vote(b) { const g = currentG(); if (!g || g.phase !== "vote" || b.dataset.p === S.myPeer) return; setMine({ v: { k: keyOf(g), p: b.dataset.p } }); },
+  vote(b) { const g = currentG(); if (!g || g.phase !== "vote" || b.dataset.p === S.myPeer) return; sfx.pop(); setMine({ v: { k: keyOf(g), p: b.dataset.p } }); },
+  react(b) {
+    const g = currentG(); if (!g || g.phase !== "vote") return;
+    const p = b.dataset.p, e = b.dataset.e; if (p === S.myPeer || !REACTIONS.includes(e)) return;
+    const m = { ...myReacts(g) }; if (m[p] === e) delete m[p]; else m[p] = e;
+    sfx.pop(); setMine({ rx: { k: keyOf(g), m } });
+  },
+  sound() { sfx.set(!sfx.on); if (sfx.on) sfx.pop(); renderSound(); },
+  invite() { inviteFriends(); },
   start() { if (S.hosting) startGame(); },
   ai(b) { if (!S.hosting) return; S.settings.ai = b.dataset.v === "1"; store.set("pb.ai", S.settings.ai ? "1" : "0"); setG({ ...S.hostG, ai: S.settings.ai }); },
   cheeky(b) { if (!S.hosting) return; S.settings.cheeky = b.dataset.v === "1"; store.set("pb.cheeky", S.settings.cheeky ? "1" : "0"); setG({ ...S.hostG, cheeky: S.settings.cheeky }); },
@@ -1239,6 +1347,7 @@ const DBL_MS = 350;
 let lastTap = { i: -1, t: 0 };
 function removeAt(i) { S.draft.words.splice(i, 1); if (S.draft.caret > i) S.draft.caret--; render(); }
 function moveTo(from, k) {
+  sfx.clack();
   const ws = S.draft.words; const [item] = ws.splice(from, 1);
   k = Math.max(0, Math.min(ws.length, k)); ws.splice(k, 0, item); S.draft.caret = k + 1; render();
 }
@@ -1413,6 +1522,11 @@ $("#pushField").addEventListener("click", async e => {
   renderPush();
 });
 renderPush();
+$("#soundField").addEventListener("click", e => {
+  const b = e.target.closest("[data-sound]"); if (!b) return;
+  sfx.set(b.dataset.sound === "1"); if (sfx.on) sfx.pop(); renderSound();
+});
+renderSound();
 setTimeout(setupPush, 2500); // ask to show update notifications, once the app has settled
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - lastUpdateCheck > 3600 * 1000) { lastUpdateCheck = Date.now(); checkForUpdate(); }
@@ -1434,6 +1548,16 @@ document.addEventListener("visibilitychange", () => {
     room.onConnection(c => { S.online = c; updateHomeMode(); });
   }
   updateHomeMode();
+  // A shared invite link (…/?room=ABCD) takes you straight to that room.
+  try {
+    const u = new URL(location.href), code = String(u.searchParams.get("room") || "").toUpperCase();
+    if (/^[A-Z]{4}$/.test(code)) {
+      history.replaceState(null, "", u.pathname);
+      codeInput.value = code;
+      if (S.live && S.me.n) enterRoom(code, false);
+      else if (S.live) { toast("Pick a nickname, then tap Join to enter room " + code + "."); }
+    }
+  } catch {}
 })();
 })();
 </script>

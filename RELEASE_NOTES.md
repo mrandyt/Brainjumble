@@ -1,3 +1,12 @@
+## Brain Jumble 1.9 — What's new
+
+- **Invite friends with a link.** Tap "Invite friends" in the lobby to share a link that drops them straight into your room, on a phone or a PC.
+- **Emoji reactions.** While voting, tap 😂 🔥 💀 or 👏 on any answer. The tallies show up live and on the results screen.
+- **Four new rooms.** Food, Movies & TV, Pets and Music, each with their own questions, magnets and AI players.
+- **Sound effects.** Magnet clacks, a countdown tick, a drum roll before the results and a ding, with a mute switch on the home screen and in games.
+- **Fridge door board.** The place where you stick your magnets now looks like a fridge door.
+- **Fix:** answer cards on the results screen no longer run off the right edge of the screen.
+
 ## Brain Jumble 1.8 — What's new
 
 - **A modern new look for the title.** A clean wordmark beside the magnet-brain mark replaces the tilted multicolour letters.

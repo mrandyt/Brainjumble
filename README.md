@@ -101,7 +101,7 @@ Up to **10 players** can play in one game. With fewer than 6, AI players 🤖 fi
 
 | Pick a room | Wait in the lobby | Vote for the best |
 | :---: | :---: | :---: |
-| <img src="docs/screenshots/02-rooms.png" width="250" alt="All twelve themed rooms as little fridge doors, each showing how many games are open"> | <img src="docs/screenshots/03-lobby.png" width="250" alt="The lobby, with the room code as big magnets, the players, and the host's settings"> | <img src="docs/screenshots/05-vote.png" width="250" alt="Voting: four anonymous answers made of magnets, with the chosen one outlined"> |
+| <img src="docs/screenshots/02-rooms.png" width="250" alt="All sixteen themed rooms as little fridge doors, each showing how many games are open"> | <img src="docs/screenshots/03-lobby.png" width="250" alt="The lobby, with the room code as big magnets, the players, and the host's settings"> | <img src="docs/screenshots/05-vote.png" width="250" alt="Voting: four anonymous answers made of magnets, with the chosen one outlined"> |
 
 ### Moving magnets around
 
